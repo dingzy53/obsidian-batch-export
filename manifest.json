@@ -1,0 +1,10 @@
+{
+	"id": "batch-export",
+	"name": "Batch Export",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.1",
+	"description": "Export a folder of notes to a single PDF with an outline, contents page, cross-references and unfolded callouts.",
+	"author": "ding",
+	"authorUrl": "https://github.com/dingzy53",
+	"isDesktopOnly": true
+}

@@ -1,0 +1,338 @@
+/* ---- checklist modal ------------------------------------------------- */
+
+.be-modal {
+	width: min(900px, 92vw);
+	display: flex;
+	flex-direction: column;
+	max-height: 88vh;
+}
+.be-modal .modal-content {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.be-modal .be-scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding-inline-end: var(--size-4-2);
+}
+.be-modal .be-sub {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin-bottom: var(--size-4-2);
+}
+.be-modal h4 {
+	margin: var(--size-4-3) 0 var(--size-4-1);
+}
+.be-modal .be-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	align-items: center;
+	margin-bottom: var(--size-4-2);
+}
+.be-modal .be-legend {
+	display: flex;
+	gap: var(--size-4-2);
+	margin-inline-start: auto;
+	font-size: var(--font-ui-smaller);
+}
+.be-modal .be-swatch {
+	padding: 0 var(--size-4-2);
+	border-radius: var(--radius-s);
+	border-inline-start: 4px solid transparent;
+}
+.be-modal .be-swatch.be-amber {
+	border-color: var(--color-orange);
+	background: rgba(var(--color-orange-rgb), 0.15);
+}
+.be-modal .be-swatch.be-grey {
+	border-color: var(--text-faint);
+	color: var(--text-muted);
+}
+.be-modal .be-list,
+.be-modal .be-external {
+	max-height: 24vh;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+.be-modal .be-row {
+	padding: var(--size-2-2) var(--size-4-2);
+	border-inline-start: 4px solid transparent;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.be-modal .be-row:last-child {
+	border-bottom: none;
+}
+.be-modal .be-row-head {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+.be-modal .be-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.be-modal .be-row.be-ticked {
+	border-inline-start-color: var(--color-green);
+}
+.be-modal .be-row.be-amber {
+	border-inline-start-color: var(--color-orange);
+	background: rgba(var(--color-orange-rgb), 0.15);
+}
+.be-modal .be-row.be-grey {
+	border-inline-start-color: var(--text-faint);
+	color: var(--text-muted);
+}
+.be-modal .be-row.be-ext {
+	border-inline-start-color: var(--color-blue);
+}
+.be-modal .be-badge {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	background: var(--background-modifier-hover);
+	border-radius: var(--radius-s);
+	padding: 0 var(--size-4-1);
+	white-space: nowrap;
+}
+.be-modal .be-path,
+.be-modal .be-from {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+.be-modal .be-from {
+	padding-inline-start: var(--size-4-6);
+}
+.be-modal .be-empty {
+	padding: var(--size-4-2);
+	color: var(--text-muted);
+}
+.be-modal .be-chevron {
+	background: none;
+	box-shadow: none;
+	padding: 0 var(--size-4-1);
+	height: auto;
+}
+.be-modal .be-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-2-2);
+	padding: var(--size-2-2) 0 var(--size-2-2) var(--size-4-6);
+}
+.be-modal .be-chip {
+	font-size: var(--font-ui-smaller);
+	border-radius: var(--radius-s);
+	padding: 0 var(--size-4-2);
+	border: 1px solid transparent;
+}
+.be-modal .be-chip-green {
+	background: rgba(var(--color-green-rgb), 0.18);
+}
+.be-modal .be-chip-amber {
+	background: rgba(var(--color-orange-rgb), 0.22);
+}
+.be-modal .be-chip-blue {
+	background: rgba(var(--color-blue-rgb), 0.18);
+}
+.be-modal .be-chip-red {
+	border: 1px dashed var(--color-red);
+	color: var(--color-red);
+}
+.be-modal .be-chip-info {
+	color: var(--text-muted);
+	background: var(--background-modifier-hover);
+}
+.be-modal .be-info {
+	margin-top: var(--size-4-2);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
+.be-modal .be-footer {
+	flex: 0 0 auto;
+	margin-top: var(--size-4-3);
+	padding-top: var(--size-4-3);
+	border-top: 1px solid var(--background-modifier-border);
+}
+.be-modal .be-summary {
+	color: var(--text-muted);
+	margin-bottom: var(--size-4-2);
+}
+.be-modal .be-out {
+	display: flex;
+	gap: var(--size-4-2);
+}
+.be-modal .be-out-input {
+	flex: 1;
+}
+.be-modal .be-footer .setting-item {
+	border-top: none;
+	padding: var(--size-4-2) 0 0;
+}
+.be-modal .be-footer-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: var(--size-4-3);
+}
+.be-modal .be-check {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: center;
+}
+.be-modal .be-buttons {
+	display: flex;
+	gap: var(--size-4-2);
+}
+
+.be-progress-title {
+	font-weight: var(--font-semibold);
+}
+.be-progress-label {
+	margin: var(--size-2-2) 0;
+	color: var(--text-muted);
+}
+
+/* ---- print container -------------------------------------------------
+ * Off-screen while rendering, normal flow when printing. Obsidian's own
+ * print rules hide every other body child and open callouts. */
+
+.batch-export-print {
+	position: fixed;
+	left: -20000px;
+	top: 0;
+	overflow: visible;
+}
+
+/* Like Obsidian's own export: no page fill, Obsidian's padding and font. */
+.batch-export-root {
+	height: auto !important;
+	overflow: visible !important;
+	scrollbar-gutter: auto;
+}
+.be-custom-font .batch-export-root {
+	font-size: var(--be-font-size);
+}
+
+.batch-export-root .be-note {
+	break-before: page;
+}
+.batch-export-root .be-appendix-header {
+	break-before: page;
+}
+.batch-export-root .be-appendix-header + .be-note {
+	break-before: auto;
+}
+.batch-export-root .be-toc {
+	break-after: page;
+}
+.be-no-note-break .batch-export-root .be-note {
+	break-before: auto;
+}
+
+.batch-export-root h1,
+.batch-export-root h2,
+.batch-export-root h3,
+.batch-export-root h4,
+.batch-export-root h5,
+.batch-export-root h6,
+.batch-export-root .be-heading {
+	break-after: avoid;
+}
+
+/* Headings demoted out of the outline keep their heading look. */
+.batch-export-root .be-heading {
+	font-weight: var(--bold-weight, 600);
+	margin-block: 0.8em 0.4em;
+}
+.batch-export-root .be-heading.be-h3 { font-size: 1.17em; }
+.batch-export-root .be-heading.be-h4 { font-size: 1em; }
+.batch-export-root .be-heading.be-h5 { font-size: 0.9em; }
+.batch-export-root .be-heading.be-h6 { font-size: 0.85em; color: #555; }
+
+.batch-export-root .be-dead-link {
+	color: inherit;
+	text-decoration: underline dotted;
+	text-decoration-color: #999;
+}
+.batch-export-root .tag {
+	color: #555;
+}
+
+.batch-export-root .tikz-container svg {
+	max-width: 100%;
+	height: auto;
+	break-inside: avoid;
+}
+/* A failed diagram keeps its one-line summary; the interactive bits are useless on paper. */
+.batch-export-root .tikz-error-actions,
+.batch-export-root .tikz-error details {
+	display: none;
+}
+
+.batch-export-root pre,
+.batch-export-root code {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.batch-export-root .callout {
+	break-inside: auto;
+}
+
+/* ---- TOC page ---------------------------------------------------------- */
+
+.batch-export-root .be-toc-title {
+	font-size: 1.6em;
+	font-weight: var(--bold-weight, 600);
+	margin-bottom: 0.8em;
+}
+.batch-export-root .be-toc-line {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4em;
+	line-height: 1.6;
+}
+.batch-export-root .be-toc-l2 { padding-inline-start: 1.5em; font-size: 0.95em; }
+.batch-export-root .be-toc-l3 { padding-inline-start: 3em; font-size: 0.9em; }
+.batch-export-root .be-toc-l4 { padding-inline-start: 4.5em; font-size: 0.88em; }
+.batch-export-root .be-toc-l5 { padding-inline-start: 6em; font-size: 0.86em; }
+.batch-export-root .be-toc-l6,
+.batch-export-root .be-toc-l7 { padding-inline-start: 7.5em; font-size: 0.85em; }
+.batch-export-root .be-toc-l7 { padding-inline-start: 9em; }
+.batch-export-root .be-toc-text {
+	color: inherit;
+	text-decoration: none;
+}
+.batch-export-root .be-toc-dots {
+	flex: 1;
+	border-bottom: 1px dotted #999;
+	transform: translateY(-0.25em);
+}
+.batch-export-root .be-pg {
+	display: inline-block;
+	min-width: 3ch;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+@media print {
+	/* The app may be in dark mode: never print its page background. Obsidian's
+	 * own export prints a separate light window, so it paints no page fill
+	 * either. Scoped to our export so the built-in one is untouched. */
+	html:has(> body.batch-export-printing),
+	body.batch-export-printing {
+		background: transparent !important;
+		color-scheme: light !important;
+	}
+
+	.batch-export-print {
+		position: static;
+		left: auto;
+		width: auto !important;
+	}
+}
