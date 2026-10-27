@@ -91,6 +91,7 @@ export async function runExport(
 	await fsp.mkdir(path.dirname(request.outPath), { recursive: true });
 	const previousTitle = document.title;
 	document.body.addClass("batch-export-printing");
+	document.documentElement.addClass("batch-export-printing");
 	const check = (): void => {
 		if (reporter.cancelled) throw new CancelledError();
 	};
@@ -204,6 +205,7 @@ export async function runExport(
 	} finally {
 		document.title = previousTitle;
 		document.body.removeClass("batch-export-printing");
+		document.documentElement.removeClass("batch-export-printing");
 		container.dispose();
 		component.unload();
 		await fsp.rm(scratch, { recursive: true, force: true }).catch(() => undefined);

@@ -71,8 +71,13 @@ build run `obsidian plugin:reload id=batch-export`.
   swaps the body class inside one synchronous task, reads the computed light
   values and pins the ones that differ on the export root.
 - A dark `<body>` background is printed as a full-page fill. `exporter.ts`
-  adds `body.batch-export-printing` so `styles.css` can make `html`/`body`
+  adds `batch-export-printing` to both `<html>` and `<body>` (no `:has`, which
+  the Obsidian community CSS lint flags) so `styles.css` can make them
   transparent in print, for our export only.
+- Community-plugin automated review: the `fs` and Electron IPC warnings are
+  inherent (PDF write, `print-to-pdf`) and are explained in the README. The
+  `break-*` rules (reported as "multicolumn") and the few `!important`
+  overrides are needed for print and were left on purpose.
 
 ## Layout
 

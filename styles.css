@@ -257,8 +257,8 @@
 
 .batch-export-root .be-dead-link {
 	color: inherit;
-	text-decoration: underline dotted;
-	text-decoration-color: #999;
+	text-decoration: none;
+	border-bottom: 1px dotted #999;
 }
 .batch-export-root .tag {
 	color: #555;
@@ -324,7 +324,7 @@
 	/* The app may be in dark mode: never print its page background. Obsidian's
 	 * own export prints a separate light window, so it paints no page fill
 	 * either. Scoped to our export so the built-in one is untouched. */
-	html:has(> body.batch-export-printing),
+	html.batch-export-printing,
 	body.batch-export-printing {
 		background: transparent !important;
 		color-scheme: light !important;

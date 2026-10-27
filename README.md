@@ -27,6 +27,13 @@ An [Obsidian](https://obsidian.md) desktop plugin that exports a folder of notes
 
 The PDF has an outline (note, `##`, `###`), a contents page, and clickable cross-references. Output is always light, whatever your Obsidian theme. The plugin only reads your notes and never writes into the vault.
 
+## Permissions and disclosures
+
+- **Filesystem:** the plugin writes the PDF to the location you choose, using Node's `fs`. It also writes short-lived scratch files to the system temp folder and reads the finished PDF back to compute contents-page numbers and fix link positions. It never writes into your vault.
+- **Electron IPC:** the PDF is produced through the `print-to-pdf` IPC call, the same one Obsidian's built-in PDF export uses. Nothing else uses IPC.
+- **Vault access:** notes are only read (`vault.cachedRead`), never modified.
+- **Network:** none.
+
 ## Settings
 
 Page size, margins, font size, outline depth, contents depth (default for new exports), render timeout.
