@@ -7,7 +7,7 @@
  */
 
 import type { BatchExportSettings } from "../settingsModel";
-import { createLightScopeStyle } from "./lightScope";
+import { lightScopeProps } from "./lightScope";
 
 export interface PrintContainer {
 	wrap: HTMLElement;
@@ -28,11 +28,17 @@ export function createPrintContainer(settings: BatchExportSettings, scale: numbe
 	const contentMm = PAGE_WIDTH_MM[settings.pageSize] - settings.marginsMm.left - settings.marginsMm.right;
 	// Same CSS width on screen and on paper, so math, diagrams and wrapping lay
 	// out identically in both. At scale 0.8 a page holds 1/0.8 more CSS pixels.
-	wrap.style.width = `${Math.round((contentMm * CSS_PX_PER_MM) / scale)}px`;
+	// The light-theme variables make everything else light, even while
+	// Obsidian is in dark mode.
+	const props: Record<string, string> = {
+		...lightScopeProps(),
+		"--be-page-width": `${Math.round((contentMm * CSS_PX_PER_MM) / scale)}px`,
+	};
 	if (settings.fontSizePt > 0) {
 		wrap.addClass("be-custom-font");
-		wrap.style.setProperty("--be-font-size", `${settings.fontSizePt}pt`);
+		props["--be-font-size"] = `${settings.fontSizePt}pt`;
 	}
+	wrap.setCssProps(props);
 	wrap.toggleClass("be-no-note-break", !settings.pageBreakPerNote);
 
 	const root = wrap.createDiv({
@@ -40,8 +46,6 @@ export function createPrintContainer(settings: BatchExportSettings, scale: numbe
 	});
 	// Light diagrams even while Obsidian is in dark mode (obsidian-tikz >= 1.2.0).
 	root.setAttribute("data-tikz-theme", "light");
-	// Light colours for everything else, even while Obsidian is in dark mode.
-	wrap.prepend(createLightScopeStyle(".batch-export-root"));
 
 	return {
 		wrap,

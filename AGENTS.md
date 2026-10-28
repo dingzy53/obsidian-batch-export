@@ -13,7 +13,9 @@ into an off-screen `div.print` container and printed through the same
 
 - `npm install`
 - `npm run dev` / `npm run build`: esbuild bundle to `main.js`
-- `npm run lint`, `npm test` (vitest, pure modules only)
+- `npm run lint`: `eslint-plugin-obsidianmd` recommended, the same source rules
+  the community automated review runs. Keep it at 0 errors.
+- `npm test` (vitest, pure modules only)
 
 Dev install: symlink this repo's `main.js`, `manifest.json` and `styles.css`
 into `<vault>/.obsidian/plugins/batch-export/`. After a
@@ -69,15 +71,24 @@ build run `obsidian plugin:reload id=batch-export`.
   are declared on `body` as `var()` references and arrive already resolved
   with dark values (`--background-primary` was `#1C1C1C`). `lightScope.ts`
   swaps the body class inside one synchronous task, reads the computed light
-  values and pins the ones that differ on the export root.
+  values and sets the ones that differ inline on the wrapper `div.print`
+  (`setCssProps`). The root inherits them, and rules on the root or below
+  still win.
 - A dark `<body>` background is printed as a full-page fill. `exporter.ts`
   adds `batch-export-printing` to both `<html>` and `<body>` (no `:has`, which
   the Obsidian community CSS lint flags) so `styles.css` can make them
   transparent in print, for our export only.
-- Community-plugin automated review: the `fs` and Electron IPC warnings are
-  inherent (PDF write, `print-to-pdf`) and are explained in the README. The
-  `break-*` rules (reported as "multicolumn") and the few `!important`
-  overrides are needed for print and were left on purpose.
+- Community-plugin automated review (community.obsidian.md dashboard):
+  - Creating a `<style>` element is an *error* and blocks install. Use
+    `styles.css` plus CSS variables set with `setCssProps`, never inline
+    `el.style.*`.
+  - The CSS lint (doiuse) reports `break-before/after/inside` as
+    "multicolumn". Use the CSS 2.1 `page-break-*` aliases, which Chromium maps
+    onto `break-*`.
+  - No `!important`: win on specificity (`.batch-export-print >
+    .batch-export-root`) or with a later rule.
+  - The `fs` and Electron IPC warnings are inherent (PDF write,
+    `print-to-pdf`). The README explains them.
 
 ## Layout
 

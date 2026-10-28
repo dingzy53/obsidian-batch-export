@@ -179,7 +179,6 @@ export default class BatchExportPlugin extends Plugin {
 				progress,
 			);
 			progress.close();
-			console.info("[batch-export] done", result);
 			new SummaryModal(this.app, result, (p) => this.openFile(p)).open();
 			if (selection.openAfter) this.openFile(result.outPath);
 		} catch (error) {

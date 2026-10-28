@@ -207,32 +207,35 @@
 	left: -20000px;
 	top: 0;
 	overflow: visible;
+	width: var(--be-page-width);
 }
 
 /* Like Obsidian's own export: no page fill, Obsidian's padding and font. */
-.batch-export-root {
-	height: auto !important;
-	overflow: visible !important;
+.batch-export-print > .batch-export-root {
+	height: auto;
+	overflow: visible;
 	scrollbar-gutter: auto;
 }
 .be-custom-font .batch-export-root {
 	font-size: var(--be-font-size);
 }
 
+/* The CSS 2.1 page-break-* names: Chromium maps them onto break-*, and the
+ * community CSS lint reports break-* as partly supported "multicolumn". */
 .batch-export-root .be-note {
-	break-before: page;
+	page-break-before: always;
 }
 .batch-export-root .be-appendix-header {
-	break-before: page;
+	page-break-before: always;
 }
 .batch-export-root .be-appendix-header + .be-note {
-	break-before: auto;
+	page-break-before: auto;
 }
 .batch-export-root .be-toc {
-	break-after: page;
+	page-break-after: always;
 }
 .be-no-note-break .batch-export-root .be-note {
-	break-before: auto;
+	page-break-before: auto;
 }
 
 .batch-export-root h1,
@@ -242,7 +245,7 @@
 .batch-export-root h5,
 .batch-export-root h6,
 .batch-export-root .be-heading {
-	break-after: avoid;
+	page-break-after: avoid;
 }
 
 /* Headings demoted out of the outline keep their heading look. */
@@ -267,7 +270,7 @@
 .batch-export-root .tikz-container svg {
 	max-width: 100%;
 	height: auto;
-	break-inside: avoid;
+	page-break-inside: avoid;
 }
 /* A failed diagram keeps its one-line summary; the interactive bits are useless on paper. */
 .batch-export-root .tikz-error-actions,
@@ -281,7 +284,7 @@
 	word-break: break-word;
 }
 .batch-export-root .callout {
-	break-inside: auto;
+	page-break-inside: auto;
 }
 
 /* ---- TOC page ---------------------------------------------------------- */
@@ -326,13 +329,13 @@
 	 * either. Scoped to our export so the built-in one is untouched. */
 	html.batch-export-printing,
 	body.batch-export-printing {
-		background: transparent !important;
-		color-scheme: light !important;
+		background: transparent;
+		color-scheme: light;
 	}
 
 	.batch-export-print {
 		position: static;
 		left: auto;
-		width: auto !important;
+		width: auto;
 	}
 }

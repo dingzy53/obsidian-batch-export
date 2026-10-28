@@ -1,10 +1,22 @@
-import tseslint from "typescript-eslint";
+import { defineConfig } from "eslint/config";
+import obsidianmd from "eslint-plugin-obsidianmd";
 
-export default tseslint.config(
+export default defineConfig([
 	{
 		ignores: ["main.js", "node_modules/**", ".spike/**"],
 	},
-	...tseslint.configs.recommended,
+	// The rules the community-plugin automated review runs. Includes ESLint
+	// and typescript-eslint recommended.
+	...obsidianmd.configs.recommended,
+	{
+		languageOptions: {
+			parserOptions: {
+				projectService: {
+					allowDefaultProject: ["eslint.config.mjs", "esbuild.config.mjs", "version-bump.mjs", "vitest.config.ts"],
+				},
+			},
+		},
+	},
 	{
 		files: ["**/*.ts"],
 		rules: {
@@ -17,4 +29,4 @@ export default tseslint.config(
 			],
 		},
 	},
-);
+]);

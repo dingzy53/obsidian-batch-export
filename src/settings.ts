@@ -1,7 +1,18 @@
-import { PluginSettingTab, Setting } from "obsidian";
-import type { App } from "obsidian";
+import { PluginSettingTab } from "obsidian";
+import type { App, SettingDefinitionItem } from "obsidian";
 import type BatchExportPlugin from "./main";
-import { tocDepthLabel, type PageSize } from "./settingsModel";
+import { tocDepthLabel } from "./settingsModel";
+
+/** Range check for a number control. The returned message is shown below the setting. */
+function range(min: number, max: number, allowZero = false): (v: number) => string | void {
+	return (v) => {
+		if (!Number.isFinite(v) || ((v < min || v > max) && !(allowZero && v === 0))) {
+			return allowZero ? `Use 0 or a value from ${min} to ${max}.` : `Use a value from ${min} to ${max}.`;
+		}
+	};
+}
+
+const INTEGER_KEYS = new Set(["scalePercent", "renderTimeoutSec"]);
 
 export class BatchExportSettingTab extends PluginSettingTab {
 	constructor(
@@ -11,132 +22,86 @@ export class BatchExportSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		const s = this.plugin.settings;
-		const save = (): void => void this.plugin.saveSettings();
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		const tocOptions: Record<string, string> = {};
+		for (let depth = 0; depth <= 6; depth++) tocOptions[String(depth)] = tocDepthLabel(depth);
 
-		new Setting(containerEl).setName("Page").setHeading();
+		return [
+			{
+				type: "group",
+				heading: "Page",
+				items: [
+					{
+						name: "Page size",
+						control: { type: "dropdown", key: "pageSize", options: { A4: "A4", Letter: "Letter", A5: "A5" } },
+					},
+					...(["top", "right", "bottom", "left"] as const).map((side) => ({
+						name: `Margin ${side} (mm)`,
+						control: { type: "number" as const, key: `marginsMm.${side}`, min: 0, max: 60, validate: range(0, 60) },
+					})),
+					{
+						name: "Scale (%)",
+						desc: "0 uses the downscale percentage of Obsidian's own Export to PDF dialog.",
+						control: { type: "number", key: "scalePercent", min: 0, max: 200, step: 1, validate: range(10, 200, true) },
+					},
+					{
+						name: "Base font size (pt)",
+						desc: "0 keeps Obsidian's font size, like the built-in export.",
+						control: { type: "number", key: "fontSizePt", min: 0, max: 24, validate: range(6, 24, true) },
+					},
+					{ name: "Start each note on a new page", control: { type: "toggle", key: "pageBreakPerNote" } },
+					{ name: "Page numbers in footer", control: { type: "toggle", key: "pageNumbers" } },
+				],
+			},
+			{
+				type: "group",
+				heading: "Structure",
+				items: [
+					{
+						name: "Outline depth",
+						desc: "Deepest heading level in the PDF outline. 1 is the note title, 2 is ##, 3 is ###. Deeper headings still print, they are just not bookmarked.",
+						control: { type: "slider", key: "outlineDepth", min: 1, max: 6, step: 1 },
+					},
+					{
+						name: "Default table of contents",
+						desc: "How deep the contents page goes. The export dialog can change it for one export, and remembers the choice per folder.",
+						control: { type: "dropdown", key: "tocDepth", options: tocOptions },
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: "Behaviour",
+				items: [
+					{
+						name: "Render timeout (seconds)",
+						desc: "Longest wait for math, diagrams and embeds before printing anyway.",
+						control: { type: "number", key: "renderTimeoutSec", min: 10, max: 1800, step: 1, validate: range(10, 1800) },
+					},
+					{ name: "Open PDF after export", control: { type: "toggle", key: "openAfterExport" } },
+					{ name: "Remember ticks per folder", control: { type: "toggle", key: "rememberTicks" } },
+				],
+			},
+		];
+	}
 
-		new Setting(containerEl).setName("Page size").addDropdown((dd) =>
-			dd
-				.addOptions({ A4: "A4", Letter: "Letter", A5: "A5" })
-				.setValue(s.pageSize)
-				.onChange((v) => {
-					s.pageSize = v as PageSize;
-					save();
-				}),
-		);
+	// Keys are dot paths into the settings (`marginsMm.left`). The TOC
+	// dropdown works on strings while the setting is a number.
+	getControlValue(key: string): unknown {
+		const [head, tail] = key.split(".");
+		const s = this.plugin.settings as unknown as Record<string, unknown>;
+		const value = tail === undefined ? s[head] : (s[head] as Record<string, unknown>)[tail];
+		return key === "tocDepth" ? String(value) : value;
+	}
 
-		for (const side of ["top", "right", "bottom", "left"] as const) {
-			new Setting(containerEl).setName(`Margin ${side} (mm)`).addText((t) =>
-				t.setValue(String(s.marginsMm[side])).onChange((v) => {
-					const n = Number(v);
-					if (Number.isFinite(n) && n >= 0 && n <= 60) {
-						s.marginsMm[side] = n;
-						save();
-					}
-				}),
-			);
-		}
-
-		new Setting(containerEl)
-			.setName("Scale (%)")
-			.setDesc("0 uses the downscale percentage of Obsidian's own Export to PDF dialog.")
-			.addText((t) =>
-				t.setValue(String(s.scalePercent)).onChange((v) => {
-					const n = Number(v);
-					if (Number.isFinite(n) && (n === 0 || (n >= 10 && n <= 200))) {
-						s.scalePercent = Math.round(n);
-						save();
-					}
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Base font size (pt)")
-			.setDesc("0 keeps Obsidian's font size, like the built-in export.")
-			.addText((t) =>
-				t.setValue(String(s.fontSizePt)).onChange((v) => {
-					const n = Number(v);
-					if (Number.isFinite(n) && (n === 0 || (n >= 6 && n <= 24))) {
-						s.fontSizePt = n;
-						save();
-					}
-				}),
-			);
-
-		new Setting(containerEl).setName("Start each note on a new page").addToggle((t) =>
-			t.setValue(s.pageBreakPerNote).onChange((v) => {
-				s.pageBreakPerNote = v;
-				save();
-			}),
-		);
-
-		new Setting(containerEl).setName("Page numbers in footer").addToggle((t) =>
-			t.setValue(s.pageNumbers).onChange((v) => {
-				s.pageNumbers = v;
-				save();
-			}),
-		);
-
-		new Setting(containerEl).setName("Structure").setHeading();
-
-		new Setting(containerEl)
-			.setName("Outline depth")
-			.setDesc("Deepest heading level in the PDF outline. 1 is the note title, 2 is ##, 3 is ###. Deeper headings still print, they are just not bookmarked.")
-			.addSlider((sl) =>
-				sl
-					.setLimits(1, 6, 1)
-					.setValue(s.outlineDepth)
-					.setDynamicTooltip()
-					.onChange((v) => {
-						s.outlineDepth = v;
-						save();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Default table of contents")
-			.setDesc("How deep the contents page goes. The export dialog can change it for one export, and remembers the choice per folder.")
-			.addDropdown((dd) => {
-				for (let depth = 0; depth <= 6; depth++) dd.addOption(String(depth), tocDepthLabel(depth));
-				dd.setValue(String(s.tocDepth)).onChange((v) => {
-					s.tocDepth = Number(v);
-					save();
-				});
-			});
-
-		new Setting(containerEl).setName("Behaviour").setHeading();
-
-		new Setting(containerEl)
-			.setName("Render timeout (seconds)")
-			.setDesc("Longest wait for math, diagrams and embeds before printing anyway.")
-			.addText((t) =>
-				t.setValue(String(s.renderTimeoutSec)).onChange((v) => {
-					const n = Number(v);
-					if (Number.isFinite(n) && n >= 10 && n <= 1800) {
-						s.renderTimeoutSec = Math.round(n);
-						save();
-					}
-				}),
-			);
-
-		new Setting(containerEl).setName("Open PDF after export").addToggle((t) =>
-			t.setValue(s.openAfterExport).onChange((v) => {
-				s.openAfterExport = v;
-				save();
-			}),
-		);
-
-		new Setting(containerEl)
-			.setName("Remember ticks per folder")
-			.addToggle((t) =>
-				t.setValue(s.rememberTicks).onChange((v) => {
-					s.rememberTicks = v;
-					save();
-				}),
-			);
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		let v = value;
+		if (key === "tocDepth") v = Number(value);
+		else if (INTEGER_KEYS.has(key) && typeof value === "number") v = Math.round(value);
+		const [head, tail] = key.split(".");
+		const s = this.plugin.settings as unknown as Record<string, unknown>;
+		if (tail === undefined) s[head] = v;
+		else (s[head] as Record<string, unknown>)[tail] = v;
+		await this.plugin.saveSettings();
 	}
 }

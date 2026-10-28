@@ -101,16 +101,19 @@ export function collectModel(app: App, folder: TFolder, indexOverride: string | 
 		indexPath: index?.path ?? null,
 		indexLinkTargets,
 	});
-	const notes: NoteInfo[] = ordered.map((entry) => {
-		const file = byPath.get(entry.path) as TFile;
-		return { path: entry.path, title: noteTitle(app, file), inIndex: entry.inIndex };
+	const noteFiles = new Map<string, TFile>();
+	const notes: NoteInfo[] = ordered.flatMap((entry) => {
+		const file = byPath.get(entry.path);
+		if (!(file instanceof TFile)) return [];
+		noteFiles.set(entry.path, file);
+		return [{ path: entry.path, title: noteTitle(app, file), inIndex: entry.inIndex }];
 	});
 
 	// The index is deliberately not part of the folder set: links to it from
 	// a note surface as an optional appendix candidate instead of vanishing.
 	const folderPaths = new Set(notes.map((n) => n.path));
 	const graph = buildGraph(
-		notes.map((n) => ({ path: n.path, edges: rawEdgesOf(app, byPath.get(n.path) as TFile) })),
+		[...noteFiles].map(([path, file]) => ({ path, edges: rawEdgesOf(app, file) })),
 		folderPaths,
 	);
 

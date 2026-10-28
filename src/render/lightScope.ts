@@ -10,7 +10,9 @@
  * So we ask the browser what every variable would be on a light `<body>`:
  * swap the class, read the computed values, and swap it back, all in one
  * synchronous task. No frame is painted in between, so nothing flickers.
- * The variables that differ from the dark values are pinned on our root.
+ * The variables that differ from the dark values are set inline on the
+ * wrapper around our root. The root inherits them, and any rule that matches
+ * the root or an element below it still wins.
  */
 
 function readCustomProperties(el: HTMLElement): Map<string, string> {
@@ -43,12 +45,9 @@ export function lightThemeOverrides(): Map<string, string> {
 	return out;
 }
 
-/** A `<style>` that pins the light-theme variables at `scopeSelector`. */
-export function createLightScopeStyle(scopeSelector: string): HTMLStyleElement {
-	const decls = [...lightThemeOverrides()].map(([name, value]) => `\t${name}: ${value};`);
-	decls.push("\tcolor-scheme: light;");
-	const style = document.createElement("style");
-	// Zero specificity: rules that target elements inside the root still win.
-	style.textContent = `:where(${scopeSelector}) {\n${decls.join("\n")}\n}`;
-	return style;
+/** Inline properties for the wrapper: light-theme variables plus `color-scheme`. */
+export function lightScopeProps(): Record<string, string> {
+	const props = Object.fromEntries(lightThemeOverrides());
+	props["color-scheme"] = "light";
+	return props;
 }

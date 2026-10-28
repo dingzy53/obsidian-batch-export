@@ -53,12 +53,14 @@ function openCallouts(section: HTMLElement): void {
 	section.querySelectorAll(".heading-collapse-indicator").forEach((el) => el.remove());
 }
 
+type HeadingTag = `h${1 | 2 | 3 | 4 | 5 | 6}`;
+
 /**
  * Replace `el` with a different tag, keeping attributes and children.
  * `null` produces a presentational div that stays out of the PDF outline.
  */
-function retag(el: HTMLElement, tag: string | null, level: number): HTMLElement {
-	const next = document.createElement(tag ?? "div");
+function retag(el: HTMLElement, tag: HeadingTag | null, level: number): HTMLElement {
+	const next = createEl(tag ?? "div");
 	for (const attr of Array.from(el.attributes)) next.setAttribute(attr.name, attr.value);
 	while (el.firstChild) next.appendChild(el.firstChild);
 	if (tag === null) {
@@ -91,7 +93,7 @@ function structureHeadings(app: App, note: RenderedNote, outlineDepth: number): 
 		const level = levelOf(heading);
 		const text = (heading.textContent ?? "").trim();
 		const keep = isOutlineLevel(level, outlineDepth);
-		const tag = keep ? `h${Math.min(6, level + shift)}` : null;
+		const tag = keep ? (`h${Math.min(6, level + shift)}` as HeadingTag) : null;
 		const next = retag(heading, tag, level);
 		next.id = headingAnchor(note.index, j);
 		if (text) headings.push({ id: next.id, text, level });
@@ -224,8 +226,7 @@ function rewriteLinks(
 		const href = a.getAttribute("data-href") ?? a.getAttribute("href") ?? "";
 		const anchor = resolveAnchor(app, href, note.file.path, pathToIndex, structure, stats);
 		if (anchor === null) {
-			const span = document.createElement("span");
-			span.className = "be-dead-link";
+			const span = createSpan({ cls: "be-dead-link" });
 			while (a.firstChild) span.appendChild(a.firstChild);
 			a.replaceWith(span);
 			stats.deadLinks++;
@@ -240,8 +241,7 @@ function rewriteLinks(
 
 	// `#TODO` renders as a link to a tag search, which is a dead URL on paper.
 	note.section.querySelectorAll<HTMLAnchorElement>("a.tag").forEach((a) => {
-		const span = document.createElement("span");
-		span.className = "tag";
+		const span = createSpan({ cls: "tag" });
 		while (a.firstChild) span.appendChild(a.firstChild);
 		a.replaceWith(span);
 	});
