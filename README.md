@@ -1,6 +1,21 @@
 # Folder to PDF
 
-An [Obsidian](https://obsidian.md) desktop plugin that exports a folder of notes to a single PDF, with an outline, a contents page with page numbers, clickable cross-references between the exported notes, and unfolded callouts.
+[![Release](https://img.shields.io/github/v/release/dingzy53/obsidian-batch-export)](https://github.com/dingzy53/obsidian-batch-export/releases/latest)
+[![Downloads](https://img.shields.io/badge/dynamic/json?label=downloads&logo=obsidian&color=7c3aed&query=%24%5B%22batch-export%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)](https://community.obsidian.md/plugins/batch-export)
+[![Obsidian](https://img.shields.io/badge/Obsidian-1.13.1%2B-7c3aed?logo=obsidian)](https://obsidian.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+Export all notes in a folder of your [Obsidian](https://obsidian.md) vault to a single PDF.
+
+<!-- Screenshot: docs/images/hero.png -->
+
+## Features
+
+- Notes in the order of the folder's index note, with a checklist to leave some out.
+- A PDF outline (notes, `##` and `###` headings) and a contents page with page numbers.
+- Clickable cross-references between the exported notes.
+- Linked notes outside the folder can be added as an appendix.
+- Callouts unfolded, and always printed in the light theme.
 
 ## Requirements
 
@@ -9,17 +24,23 @@ An [Obsidian](https://obsidian.md) desktop plugin that exports a folder of notes
 
 ## Installation
 
-**From the community directory**
+**From the community directory** (recommended)
 
-Open *Settings → Community plugins → Browse*, search for **Folder to PDF**, then install and enable it.
+1. Open **Settings → Community plugins** and turn on community plugins if asked.
+2. Select **Browse**, search for **Folder to PDF**, then select **Install** and **Enable**.
 
-**From a release**
+You can also open the plugin's page: [community.obsidian.md/plugins/batch-export](https://community.obsidian.md/plugins/batch-export).
+
+**Manually**
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/dingzy53/obsidian-batch-export/releases/latest).
-2. Put them in `<vault>/.obsidian/plugins/batch-export/`.
-3. Reload Obsidian and enable **Folder to PDF** under *Settings → Community plugins*.
+2. In **Settings → Community plugins**, select the folder icon next to **Installed plugins**. This opens `<vault>/.obsidian/plugins/`.
+3. Create a folder named `batch-export` there and put the three files in it.
+4. Select the reload icon next to **Installed plugins**, then enable **Folder to PDF**.
 
-**With BRAT:** add `dingzy53/obsidian-batch-export`.
+**Beta versions:** install [BRAT](https://github.com/TfTHacker/obsidian42-brat) and add `dingzy53/obsidian-batch-export`.
+
+**Update or remove:** select **Check for updates** or **Uninstall** in **Settings → Community plugins**.
 
 ## Usage
 
@@ -31,16 +52,16 @@ Open *Settings → Community plugins → Browse*, search for **Folder to PDF**, 
 
 The PDF has an outline (note, `##`, `###`), a contents page, and clickable cross-references. Output is always light, whatever your Obsidian theme. The plugin only reads your notes and never writes into the vault.
 
-## Permissions and disclosures
+## Settings
+
+Page size, margins, font size, outline depth, contents depth (default for new exports), render timeout.
+
+## Privacy and security
 
 - **Filesystem:** the plugin writes the PDF to the location you choose, using Node's `fs`. It also writes short-lived scratch files to the system temp folder and reads the finished PDF back to compute contents-page numbers and fix link positions. It never writes into your vault.
 - **Electron IPC:** the PDF is produced through the `print-to-pdf` IPC call, the same one Obsidian's built-in PDF export uses. Nothing else uses IPC.
 - **Vault access:** notes are only read (`vault.cachedRead`), never modified.
 - **Network:** none.
-
-## Settings
-
-Page size, margins, font size, outline depth, contents depth (default for new exports), render timeout.
 
 ## Development
 
@@ -54,7 +75,7 @@ npm test
 
 To try a build, symlink `main.js`, `manifest.json` and `styles.css` into `<vault>/.obsidian/plugins/batch-export/`. See [AGENTS.md](AGENTS.md) for design notes.
 
-## Releasing
+### Releasing
 
 ```bash
 npm version patch   # bumps package.json, manifest.json and versions.json, commits and tags
