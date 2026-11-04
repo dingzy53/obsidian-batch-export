@@ -1,6 +1,6 @@
 {
 	"name": "batch-export",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "Obsidian desktop plugin: export a folder of notes to a single PDF.",
 	"main": "main.js",
 	"scripts": {
