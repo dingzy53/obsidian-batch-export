@@ -7,7 +7,7 @@
 
 Export all notes in a folder of your [Obsidian](https://obsidian.md) vault to a single PDF.
 
-<!-- Screenshot: docs/images/hero.png -->
+<img src="docs/images/hero.png" alt="Choosing notes to export" width="900">
 
 ## Features
 
@@ -51,6 +51,8 @@ You can also open the plugin's page: [community.obsidian.md/plugins/batch-export
 - Choose the contents-page heading depth in the export dialog. It is remembered per folder.
 
 The PDF has an outline (note, `##`, `###`), a contents page, and clickable cross-references. Output is always light, whatever your Obsidian theme. The plugin only reads your notes and never writes into the vault.
+
+<img src="docs/images/pdf.png" alt="The exported PDF with its outline and contents page" width="645">
 
 ## Settings
 
