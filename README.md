@@ -9,6 +9,10 @@ An [Obsidian](https://obsidian.md) desktop plugin that exports a folder of notes
 
 ## Installation
 
+**From the community directory**
+
+Open *Settings → Community plugins → Browse*, search for **Batch Export**, then install and enable it.
+
 **From a release**
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/dingzy53/obsidian-batch-export/releases/latest).
@@ -61,4 +65,4 @@ The tag triggers the Release workflow, which lints, tests, builds and attaches `
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © 2026 Ding Zheng Yuan
