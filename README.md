@@ -1,23 +1,23 @@
-# Batch Export
+# Folder to PDF
 
 An [Obsidian](https://obsidian.md) desktop plugin that exports a folder of notes to a single PDF, with an outline, a contents page with page numbers, clickable cross-references between the exported notes, and unfolded callouts.
 
 ## Requirements
 
 - Obsidian 1.13.1 or newer, desktop only (the plugin uses Obsidian's own PDF printing).
-- Optional: the [TikZ plugin](https://github.com/dingzy53/obsidian-tikz) 1.2.0 or newer, so TikZ diagrams print in the light theme.
+- Optional: the [Native TikZ](https://github.com/dingzy53/obsidian-tikz) plugin 1.2.0 or newer, so TikZ diagrams print in the light theme.
 
 ## Installation
 
 **From the community directory**
 
-Open *Settings → Community plugins → Browse*, search for **Batch Export**, then install and enable it.
+Open *Settings → Community plugins → Browse*, search for **Folder to PDF**, then install and enable it.
 
 **From a release**
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/dingzy53/obsidian-batch-export/releases/latest).
 2. Put them in `<vault>/.obsidian/plugins/batch-export/`.
-3. Reload Obsidian and enable **Batch Export** under *Settings → Community plugins*.
+3. Reload Obsidian and enable **Folder to PDF** under *Settings → Community plugins*.
 
 **With BRAT:** add `dingzy53/obsidian-batch-export`.
 
