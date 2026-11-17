@@ -11,7 +11,7 @@ Export all notes in a folder of your [Obsidian](https://obsidian.md) vault to a 
 
 ## Features
 
-- Notes in the order of the folder's index note, with a checklist to leave some out.
+- Notes in the order of the folder's index note, with a checklist to leave some out and drag them into a custom order.
 - A PDF outline (notes, `##` and `###` headings) and a contents page with page numbers.
 - Clickable cross-references between the exported notes.
 - Linked notes outside the folder can be added as an appendix.
@@ -45,9 +45,9 @@ You can also open the plugin's page: [community.obsidian.md/plugins/batch-export
 ## Usage
 
 - Right-click a folder and choose **Export folder to PDF…**, or run the command for the folder of the active note.
-- A checklist shows every note in index order. A note is **amber** when it is unticked but a ticked note links to it, so its cross-references would be dead text.
+- A checklist starts in index order. Drag the grip handle (or use the arrow buttons) to change the export order; **Reset order** puts it back. A note is **amber** when it is unticked but a ticked note links to it, so its cross-references would be dead text.
 - Linked notes outside the folder are listed separately and can be added as an **Appendix**.
-- The order comes from the links in the folder's index note.
+- The default order comes from the links in the folder's index note.
 - Choose the contents-page heading depth in the export dialog. It is remembered per folder.
 
 The PDF has an outline (note, `##`, `###`), a contents page, and clickable cross-references. Output is always light, whatever your Obsidian theme. The plugin only reads your notes and never writes into the vault.

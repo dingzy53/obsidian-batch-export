@@ -12,6 +12,8 @@ import type { RenderedNote } from "./renderNotes";
 export interface TocHeading {
 	id: string;
 	text: string;
+	/** Inline DOM cloned from the heading (math, emphasis) for the TOC. */
+	content?: DocumentFragment;
 	/** Source level, 1-6 (a body `#` is 1). */
 	level: number;
 }
@@ -71,6 +73,40 @@ function retag(el: HTMLElement, tag: HeadingTag | null, level: number): HTMLElem
 	return next;
 }
 
+/**
+ * Keeps MathJax and SVG subtrees out of Chromium's accessibility tree.
+ * Without this, a tagged PDF gets one `/NonStruct` object per glyph and one
+ * marked-content wrapper per math character (a 57-page export reached ~89k
+ * objects). Headings and links stay visible to Blink so `/Outlines` and
+ * `/Dests` are still produced.
+ */
+function pruneAccessibilityTree(section: HTMLElement): void {
+	section.querySelectorAll("mjx-container, svg").forEach((el) => {
+		el.setAttribute("aria-hidden", "true");
+	});
+	// The surd's +0.02em italic correction widens the character box and pushes
+	// the radical's top bar away from the root sign.
+	section.querySelectorAll("mjx-surd mjx-c").forEach((el) => el.setAttribute("noic", "true"));
+}
+
+/**
+ * A copy of a heading's inline content that is safe inside the TOC's `<a>`:
+ * no duplicate element ids, no nested links, and hidden math/diagram subtrees.
+ */
+function cloneHeadingContent(heading: HTMLElement): DocumentFragment {
+	const fragment = createFragment();
+	for (const node of Array.from(heading.childNodes)) fragment.appendChild(node.cloneNode(true));
+
+	for (const el of Array.from(fragment.querySelectorAll("[id]"))) el.removeAttribute("id");
+	for (const anchor of Array.from(fragment.querySelectorAll("a"))) {
+		const span = createSpan(anchor.className ? { cls: anchor.className } : {});
+		while (anchor.firstChild) span.appendChild(anchor.firstChild);
+		anchor.replaceWith(span);
+	}
+	fragment.querySelectorAll("mjx-container, svg").forEach((el) => el.setAttribute("aria-hidden", "true"));
+	return fragment;
+}
+
 function structureHeadings(app: App, note: RenderedNote, outlineDepth: number): NoteStructure {
 	const section = note.section;
 	// The note title is already a heading of its own; everything else in the
@@ -96,7 +132,7 @@ function structureHeadings(app: App, note: RenderedNote, outlineDepth: number): 
 		const tag = keep ? (`h${Math.min(6, level + shift)}` as HeadingTag) : null;
 		const next = retag(heading, tag, level);
 		next.id = headingAnchor(note.index, j);
-		if (text) headings.push({ id: next.id, text, level });
+		if (text) headings.push({ id: next.id, text, level, content: cloneHeadingContent(next) });
 	});
 
 	return { cacheToDom, headings, blocks: new Set() };
@@ -253,6 +289,7 @@ export function postprocess(app: App, notes: RenderedNote[], outlineDepth: numbe
 
 	for (const note of notes) {
 		openCallouts(note.section);
+		pruneAccessibilityTree(note.section);
 		const structure = structureHeadings(app, note, outlineDepth);
 		// After the headings, so retagging cannot drop a block id.
 		structure.blocks = placeBlockAnchors(note);

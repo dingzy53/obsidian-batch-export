@@ -72,6 +72,43 @@
 	align-items: center;
 	gap: var(--size-4-2);
 }
+.be-modal .be-drag-handle {
+	display: flex;
+	align-items: center;
+	color: var(--text-faint);
+	cursor: grab;
+}
+.be-modal .be-drag-handle svg {
+	width: var(--icon-xs);
+	height: var(--icon-xs);
+}
+.be-modal .be-drag-handle:active {
+	cursor: grabbing;
+}
+.be-modal .be-move-btn {
+	padding: 0 var(--size-2-1);
+	height: auto;
+	background: none;
+	box-shadow: none;
+	color: var(--text-muted);
+}
+.be-modal .be-move-btn svg {
+	width: var(--icon-xs);
+	height: var(--icon-xs);
+}
+.be-modal .be-move-btn:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+.be-modal .be-row.be-dragging {
+	opacity: 0.45;
+}
+.be-modal .be-row.be-drop-above {
+	box-shadow: inset 0 2px 0 var(--interactive-accent);
+}
+.be-modal .be-row.be-drop-below {
+	box-shadow: inset 0 -2px 0 var(--interactive-accent);
+}
 .be-modal .be-title {
 	flex: 1;
 	min-width: 0;
@@ -323,14 +360,65 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/* ---- MathJax print fixes ----------------------------------------------
+ * MathJax 4 injects its rules into #MJX-CHTML-styles with low specificity, so
+ * these selectors (two classes + element) win without !important. */
+
+/* Per-glyph clip boxes slice overbars (\bar{X}) and fill the PDF with clip
+ * rectangles. Stretchy extenders keep their own clip rules: they need them. */
+.batch-export-print > .batch-export-root mjx-mo > mjx-c,
+.batch-export-print > .batch-export-root mjx-mi > mjx-c,
+.batch-export-print > .batch-export-root mjx-mn > mjx-c,
+.batch-export-print > .batch-export-root mjx-ms > mjx-c,
+.batch-export-print > .batch-export-root mjx-mtext > mjx-c {
+	clip-path: none;
+}
+
+/* Remove the surd's italic correction: its +0.02em padding pushes the radical
+ * bar away from the root sign once the PDF snaps to whole pixels. */
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A {
+	padding-right: 0.833em;
+}
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S1,
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S2,
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S3,
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S4,
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-SO,
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-LO {
+	padding-right: 1em;
+}
+
+/* Overlap the vinculum into the surd and keep it thick enough to survive the
+ * 0.8 downscale and rasterization. */
+.batch-export-print > .batch-export-root mjx-sqrt > mjx-box {
+	border-top-width: max(0.078em, 1.25px);
+	padding-left: 0.06em;
+	margin-left: -0.06em;
+}
+.batch-export-print > .batch-export-root mjx-sqrt.mjx-tall > mjx-box {
+	padding-left: 0.33em;
+	margin-left: -0.33em;
+}
+/* Fraction and stretchy over/underline bars get the same minimum thickness. */
+.batch-export-print > .batch-export-root mjx-line {
+	border-top-width: max(0.067em, 1.15px);
+}
+
 @media print {
-	/* The app may be in dark mode: never print its page background. Obsidian's
-	 * own export prints a separate light window, so it paints no page fill
-	 * either. Scoped to our export so the built-in one is untouched. */
+	/* The window background is set to white during printToPDF (see
+	 * pdf/print.ts); paint the page white too so a dark body or a theme rule
+	 * cannot leak through the margins. Scoped to our export so the built-in
+	 * one is untouched. */
 	html.batch-export-printing,
-	body.batch-export-printing {
-		background: transparent;
+	body.batch-export-printing,
+	.batch-export-print,
+	.batch-export-print > .batch-export-root {
+		background: #ffffff;
+		background-color: #ffffff;
 		color-scheme: light;
+	}
+	.batch-export-print > .batch-export-root {
+		color: var(--text-normal);
 	}
 
 	.batch-export-print {
