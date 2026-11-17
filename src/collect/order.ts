@@ -25,6 +25,28 @@ export function comparePaths(a: string, b: string): number {
 	return collator.compare(a, b);
 }
 
+/**
+ * A copy of `items` with the element at `fromIndex` moved to `toIndex`.
+ * Indices are clamped to the array bounds; an out-of-range move or a move to
+ * the same place returns an equivalent copy unchanged.
+ */
+export function moveItem<T>(items: readonly T[], fromIndex: number, toIndex: number): T[] {
+	const next = [...items];
+	if (next.length === 0) return next;
+	const from = Math.min(Math.max(fromIndex, 0), next.length - 1);
+	const to = Math.min(Math.max(toIndex, 0), next.length - 1);
+	if (from === to) return next;
+	const [item] = next.splice(from, 1);
+	next.splice(to, 0, item);
+	return next;
+}
+
+/** True when two path lists have the same length and the same order. */
+export function isSameOrder(a: readonly string[], b: readonly string[]): boolean {
+	if (a.length !== b.length) return false;
+	return a.every((value, index) => value === b[index]);
+}
+
 export function orderNotes(input: OrderInput): OrderedEntry[] {
 	const inFolder = new Set(input.folderFiles);
 	const result: OrderedEntry[] = [];

@@ -76,8 +76,18 @@ build run `obsidian plugin:reload id=batch-export`.
   still win.
 - A dark `<body>` background is printed as a full-page fill. `exporter.ts`
   adds `batch-export-printing` to both `<html>` and `<body>` (no `:has`, which
-  the Obsidian community CSS lint flags) so `styles.css` can make them
-  transparent in print, for our export only.
+  the Obsidian community CSS lint flags) so `styles.css` can paint them white
+  in print, for our export only.
+- In dark mode `printToPDF` on the main window paints the window's base
+  background (`#1C1C1C` in 1.15.1) over the whole page, before margins and
+  scale. CSS cannot cover it; `pdf/print.ts` sets the window to `#ffffff`
+  while printing and restores the previous colour afterwards.
+- A tagged PDF gets one `/NonStruct` StructElem per DOM node inside MathJax
+  and SVG. `aria-hidden` on `mjx-container`/`svg` prevents this, except inside
+  outline headings, whose math gives the bookmark titles their text.
+- MathJax 4 (TeX font) only writes a `[noic]` rule for characters with `oc`.
+  Characters that only have `ic`, such as the surd, need a CSS
+  `padding-right` override instead.
 - Community-plugin automated review (community.obsidian.md dashboard):
   - Creating a `<style>` element is an *error* and blocks install. Use
     `styles.css` plus CSS variables set with `setCssProps`, never inline

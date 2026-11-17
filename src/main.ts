@@ -223,12 +223,11 @@ export default class BatchExportPlugin extends Plugin {
 				if (!file) throw new Error(`Note not found: ${p}`);
 				return { file, title: model.titles.get(p) ?? file.basename };
 			});
-		// Keep the export order, whatever order the caller listed notes in.
-		const order = new Map(model.notes.map((n, i) => [n.path, i]));
-		const sorted = [...notes].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+		// Keep the caller's order: the checklist (or an API caller) decides how
+		// the notes are sequenced in the PDF.
 		return {
 			title: model.folderName,
-			notes: resolve(sorted),
+			notes: resolve(notes),
 			appendix: resolve(appendix),
 			outPath,
 			tocDepth,

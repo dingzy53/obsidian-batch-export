@@ -4,9 +4,10 @@
  * selection links to.
  */
 
-import { Modal, Setting } from "obsidian";
+import { Modal, Setting, setIcon } from "obsidian";
 import type { App } from "obsidian";
-import type { ExportModel } from "../collect/folder";
+import type { ExportModel, NoteInfo } from "../collect/folder";
+import { isSameOrder, moveItem } from "../collect/order";
 import { tocDepthLabel } from "../settingsModel";
 import { danglingTargets, externalRefs, incomingLinks, unresolvedRefs, type ExternalRef } from "../collect/graph";
 
@@ -39,6 +40,8 @@ const MAX_CHIPS = 60;
 
 export class SelectModal extends Modal {
 	private model: ExportModel;
+	/** The export order, independent of `model.notes` once the user reorders. */
+	private noteOrder: NoteInfo[];
 	private ticked: Set<string>;
 	private appendix: Set<string>;
 	private outPath: string;
@@ -51,6 +54,10 @@ export class SelectModal extends Modal {
 	private externalEl!: HTMLElement;
 	private unresolvedEl!: HTMLElement;
 	private summaryEl!: HTMLElement;
+	private resetBtn!: HTMLButtonElement;
+	private dragFrom: number | null = null;
+	/** True while the pointer went down on a row's grip. */
+	private dragArmed = false;
 
 	constructor(
 		app: App,
@@ -58,6 +65,7 @@ export class SelectModal extends Modal {
 	) {
 		super(app);
 		this.model = init.model;
+		this.noteOrder = [...init.model.notes];
 		this.ticked = init.ticked;
 		this.appendix = init.appendix;
 		this.outPath = init.outPath;
@@ -88,6 +96,7 @@ export class SelectModal extends Modal {
 				dd.setValue(this.model.indexPath ?? "");
 				dd.onChange((value) => {
 					this.model = this.init.recollect(value === "" ? null : value);
+					this.noteOrder = [...this.model.notes];
 					this.ticked = this.init.defaultTicks(this.model);
 					this.appendix = new Set();
 					this.expanded.clear();
@@ -112,6 +121,13 @@ export class SelectModal extends Modal {
 				for (const path of missing.keys()) this.ticked.add(path);
 			}
 			this.renderAll();
+		};
+		this.resetBtn = bar.createEl("button", { text: "Reset order" });
+		this.resetBtn.setAttr("title", "Put the notes back into index order");
+		this.resetBtn.onclick = () => {
+			this.noteOrder = [...this.model.notes];
+			this.renderNotes();
+			this.updateOrderControls();
 		};
 		const legend = bar.createDiv({ cls: "be-legend" });
 		legend.createSpan({ cls: "be-swatch be-amber", text: "unticked but linked from a ticked note" });
@@ -171,7 +187,7 @@ export class SelectModal extends Modal {
 	}
 
 	private submit(): void {
-		const notes = this.model.notes.filter((n) => this.ticked.has(n.path)).map((n) => n.path);
+		const notes = this.noteOrder.filter((n) => this.ticked.has(n.path)).map((n) => n.path);
 		if (notes.length === 0) {
 			this.summaryEl.setText("Tick at least one note.");
 			return;
@@ -212,13 +228,15 @@ export class SelectModal extends Modal {
 		const dangling = danglingTargets(graph, this.ticked);
 		const incoming = incomingLinks(graph, this.ticked);
 
-		for (const note of this.model.notes) {
+		this.noteOrder.forEach((note, index) => {
 			const isTicked = this.ticked.has(note.path);
 			const missingFrom = dangling.get(note.path);
 			const state = isTicked ? "be-ticked" : missingFrom ? "be-amber" : "be-grey";
 			const row = el.createDiv({ cls: `be-row ${state}` });
 
 			const head = row.createDiv({ cls: "be-row-head" });
+			const drag = head.createSpan({ cls: "be-drag-handle", attr: { "aria-label": "Drag to reorder", title: "Drag to reorder" } });
+			setIcon(drag, "grip-vertical");
 			const cb = head.createEl("input", { type: "checkbox" });
 			cb.checked = isTicked;
 			cb.onchange = () => {
@@ -240,6 +258,16 @@ export class SelectModal extends Modal {
 				head.setAttr("title", `Linked from ticked notes (${missingFrom.map((p) => this.title(p)).join(", ")}): its cross-references would be dead text.`);
 			}
 
+			const up = head.createEl("button", { cls: "be-move-btn clickable-icon", attr: { "aria-label": "Move up", title: "Move up" } });
+			setIcon(up, "arrow-up");
+			up.disabled = index === 0;
+			up.onclick = () => this.moveNote(index, index - 1);
+
+			const down = head.createEl("button", { cls: "be-move-btn clickable-icon", attr: { "aria-label": "Move down", title: "Move down" } });
+			setIcon(down, "arrow-down");
+			down.disabled = index === this.noteOrder.length - 1;
+			down.onclick = () => this.moveNote(index, index + 1);
+
 			const open = this.expanded.has(note.path);
 			const chevron = head.createEl("button", { cls: "be-chevron", text: open ? "▾" : "▸" });
 			chevron.onclick = () => {
@@ -248,7 +276,111 @@ export class SelectModal extends Modal {
 				this.renderNotes();
 			};
 			if (open) this.renderChips(row, note.path);
+
+			this.wireRowDrag(row, index);
+		});
+
+		this.updateOrderControls();
+	}
+
+	/** Reorder one step and redraw the list. */
+	private moveNote(from: number, to: number): void {
+		const next = moveItem(this.noteOrder, from, to);
+		if (isSameOrder(next.map((n) => n.path), this.noteOrder.map((n) => n.path))) return;
+		this.noteOrder = next;
+		this.renderNotes();
+	}
+
+	/** Enable "Reset order" only when the list differs from index order. */
+	private updateOrderControls(): void {
+		if (!this.resetBtn) return;
+		this.resetBtn.disabled = isSameOrder(
+			this.noteOrder.map((n) => n.path),
+			this.model.notes.map((n) => n.path),
+		);
+	}
+
+	/** Drag-and-drop reordering, armed only by dragging the grip handle. */
+	private wireRowDrag(row: HTMLElement, index: number): void {
+		// The row is always draggable so the native drag starts reliably; the
+		// grip merely arms it, and a drag from anywhere else is cancelled.
+		row.draggable = true;
+		const handle = row.querySelector(".be-drag-handle");
+		if (handle instanceof HTMLElement) {
+			handle.addEventListener("pointerdown", () => {
+				this.dragArmed = true;
+				window.addEventListener(
+					"pointerup",
+					() => {
+						this.dragArmed = false;
+					},
+					{ once: true },
+				);
+			});
 		}
+
+		row.addEventListener("dragstart", (event) => {
+			if (!this.dragArmed) {
+				event.preventDefault();
+				return;
+			}
+			this.dragArmed = false;
+			this.dragFrom = index;
+			row.addClass("be-dragging");
+			if (event.dataTransfer) {
+				event.dataTransfer.effectAllowed = "move";
+				// Some Chromium builds refuse to start a drag without data.
+				event.dataTransfer.setData("text/plain", String(index));
+			}
+		});
+
+		row.addEventListener("dragover", (event) => {
+			if (this.dragFrom === null || this.dragFrom === index) return;
+			event.preventDefault();
+			if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+			this.clearDropMarks();
+			const above = this.isDropAbove(row, event);
+			row.toggleClass("be-drop-above", above);
+			row.toggleClass("be-drop-below", !above);
+		});
+
+		row.addEventListener("dragleave", () => {
+			row.removeClass("be-drop-above");
+			row.removeClass("be-drop-below");
+		});
+
+		row.addEventListener("drop", (event) => {
+			event.preventDefault();
+			const from = this.dragFrom;
+			this.dragFrom = null;
+			this.clearDropMarks();
+			if (from === null) return;
+			const above = this.isDropAbove(row, event);
+			let to = above ? index : index + 1;
+			// An insertion point after the item being moved shifts left by one.
+			if (from < to) to -= 1;
+			this.noteOrder = moveItem(this.noteOrder, from, to);
+			this.renderNotes();
+		});
+
+		row.addEventListener("dragend", () => {
+			this.dragFrom = null;
+			this.dragArmed = false;
+			row.removeClass("be-dragging");
+			this.clearDropMarks();
+		});
+	}
+
+	private isDropAbove(row: HTMLElement, event: DragEvent): boolean {
+		const rect = row.getBoundingClientRect();
+		return event.clientY < rect.top + rect.height / 2;
+	}
+
+	private clearDropMarks(): void {
+		this.listEl.querySelectorAll(".be-drop-above, .be-drop-below").forEach((el) => {
+			el.removeClass("be-drop-above");
+			el.removeClass("be-drop-below");
+		});
 	}
 
 	private renderChips(row: HTMLElement, path: string): void {

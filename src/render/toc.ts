@@ -9,10 +9,12 @@ import { inToc, noteAnchor, tocLineLevel } from "./anchors";
 
 const PLACEHOLDER = "000";
 
-function line(parent: HTMLElement, level: number, id: string, text: string): void {
+function line(parent: HTMLElement, level: number, id: string, text: string, content?: DocumentFragment): void {
 	const row = parent.createDiv({ cls: `be-toc-line be-toc-l${level}` });
-	row.createEl("a", { cls: "be-toc-text", text, attr: { href: `#${id}` } });
-	row.createSpan({ cls: "be-toc-dots" });
+	const link = row.createEl("a", { cls: "be-toc-text", attr: { href: `#${id}` } });
+	if (content) link.appendChild(content.cloneNode(true));
+	else link.setText(text);
+	row.createSpan({ cls: "be-toc-dots", attr: { "aria-hidden": "true" } });
 	row.createSpan({ cls: "be-pg", text: PLACEHOLDER, attr: { "data-target": id } });
 }
 
@@ -34,7 +36,7 @@ export function buildToc(
 		}
 		line(toc, note.appendix ? 2 : 1, noteAnchor(note.index), note.title);
 		for (const h of structure.get(note.index)?.headings ?? []) {
-			if (inToc(h.level, tocDepth)) line(toc, tocLineLevel(h.level, note.appendix), h.id, h.text);
+			if (inToc(h.level, tocDepth)) line(toc, tocLineLevel(h.level, note.appendix), h.id, h.text, h.content);
 		}
 	}
 	root.prepend(toc);
