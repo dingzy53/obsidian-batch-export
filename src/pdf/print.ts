@@ -61,8 +61,10 @@ function currentWindow(): BrowserWindowLike | null {
  * Chromium's `printToPDF` paints the window's base background over the whole
  * page, before margins and `scale` apply. In dark mode that background is
  * `#1C1C1C`, so a transparent `html`/`body` still prints a dark page with
- * black text. CSS cannot reach this color; only the window can. The export
- * container covers the viewport, so the change is invisible on screen.
+ * black text. CSS cannot reach this color; only the window can. The change is
+ * invisible on screen because Obsidian's `body` paints an opaque background
+ * over the window; with *translucent window* on, the window colour is
+ * `#00000000` and is restored the same way.
  */
 export async function withLightWindowBackground<T>(fn: () => Promise<T>): Promise<T> {
 	const win = currentWindow();

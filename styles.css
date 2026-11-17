@@ -375,16 +375,16 @@
 }
 
 /* Remove the surd's italic correction: its +0.02em padding pushes the radical
- * bar away from the root sign once the PDF snaps to whole pixels. */
-.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A {
+ * bar away from the root sign once the PDF snaps to whole pixels. Widths are
+ * normal 0.833em, TEX-S1..S4 1em. The 0.958em variant also has a TEX- class
+ * and is left untouched on purpose, so it keeps its own 0.988em advance. */
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A:not([class*="TEX-"]) {
 	padding-right: 0.833em;
 }
 .batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S1,
 .batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S2,
 .batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S3,
-.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S4,
-.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-SO,
-.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-LO {
+.batch-export-print > .batch-export-root mjx-surd mjx-c.mjx-c221A.TEX-S4 {
 	padding-right: 1em;
 }
 
@@ -399,7 +399,8 @@
 	padding-left: 0.33em;
 	margin-left: -0.33em;
 }
-/* Fraction and stretchy over/underline bars get the same minimum thickness. */
+/* Fraction bars (mjx-line is only used by mjx-mfrac) get the same minimum
+ * thickness. \atop / \binom have no line; custom linethickness is inline. */
 .batch-export-print > .batch-export-root mjx-line {
 	border-top-width: max(0.067em, 1.15px);
 }

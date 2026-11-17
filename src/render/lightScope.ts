@@ -24,22 +24,20 @@ function readCustomProperties(el: HTMLElement): Map<string, string> {
 	return out;
 }
 
-/** The dark and light computed values of every custom property on `body`. */
-function themeValues(): { dark: Map<string, string>; light: Map<string, string> } {
+/** Variables whose light-theme value differs from the current (dark) one. */
+export function lightThemeOverrides(): Map<string, string> {
 	const body = document.body;
+	if (!body.classList.contains("theme-dark")) return new Map();
+
 	const dark = readCustomProperties(body);
-	if (!body.classList.contains("theme-dark")) return { dark, light: dark };
+	let light: Map<string, string>;
 	body.classList.replace("theme-dark", "theme-light");
 	try {
-		return { dark, light: readCustomProperties(body) };
+		light = readCustomProperties(body);
 	} finally {
 		body.classList.replace("theme-light", "theme-dark");
 	}
-}
 
-/** Variables whose light-theme value differs from the current (dark) one. */
-export function lightThemeOverrides(): Map<string, string> {
-	const { dark, light } = themeValues();
 	const out = new Map<string, string>();
 	for (const [name, value] of light) {
 		if (dark.get(name) !== value) out.set(name, value);
@@ -49,20 +47,7 @@ export function lightThemeOverrides(): Map<string, string> {
 
 /** Inline properties for the wrapper: light-theme variables plus `color-scheme`. */
 export function lightScopeProps(): Record<string, string> {
-	const { dark, light } = themeValues();
-	const props: Record<string, string> = {};
-	for (const [name, value] of light) {
-		if (dark.get(name) !== value) props[name] = value;
-	}
-	// A custom theme can declare these two on `.theme-dark` only, so the diff
-	// above would miss them and the page would keep a dark canvas or light
-	// text. Always pin them for the export.
-	if (!props["--background-primary"]) {
-		props["--background-primary"] = light.get("--background-primary")?.trim() || "#ffffff";
-	}
-	if (!props["--text-normal"]) {
-		props["--text-normal"] = light.get("--text-normal")?.trim() || "#222222";
-	}
+	const props = Object.fromEntries(lightThemeOverrides());
 	props["color-scheme"] = "light";
 	return props;
 }

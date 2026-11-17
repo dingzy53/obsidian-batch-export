@@ -77,16 +77,15 @@ function retag(el: HTMLElement, tag: HeadingTag | null, level: number): HTMLElem
  * Keeps MathJax and SVG subtrees out of Chromium's accessibility tree.
  * Without this, a tagged PDF gets one `/NonStruct` object per glyph and one
  * marked-content wrapper per math character (a 57-page export reached ~89k
- * objects). Headings and links stay visible to Blink so `/Outlines` and
- * `/Dests` are still produced.
+ * objects). Math inside headings that stay in the outline is left alone:
+ * Chromium takes bookmark titles from the heading's accessible text, and
+ * MathJax's assistive MathML is what supplies that text.
  */
 function pruneAccessibilityTree(section: HTMLElement): void {
 	section.querySelectorAll("mjx-container, svg").forEach((el) => {
+		if (el.closest(HEADING_SELECTOR)) return;
 		el.setAttribute("aria-hidden", "true");
 	});
-	// The surd's +0.02em italic correction widens the character box and pushes
-	// the radical's top bar away from the root sign.
-	section.querySelectorAll("mjx-surd mjx-c").forEach((el) => el.setAttribute("noic", "true"));
 }
 
 /**
@@ -97,14 +96,23 @@ function cloneHeadingContent(heading: HTMLElement): DocumentFragment {
 	const fragment = createFragment();
 	for (const node of Array.from(heading.childNodes)) fragment.appendChild(node.cloneNode(true));
 
+	// A TOC line is not a heading, so a footnote marker is noise there.
+	fragment.querySelectorAll("sup.footnote-ref, .footnote-link, sup[data-footnote-id]").forEach((el) => el.remove());
 	for (const el of Array.from(fragment.querySelectorAll("[id]"))) el.removeAttribute("id");
+	// Internal links, external links and tags become plain text: no accent
+	// colour, no underline and no tag pill in the contents page.
 	for (const anchor of Array.from(fragment.querySelectorAll("a"))) {
-		const span = createSpan(anchor.className ? { cls: anchor.className } : {});
+		const span = createSpan();
 		while (anchor.firstChild) span.appendChild(anchor.firstChild);
 		anchor.replaceWith(span);
 	}
 	fragment.querySelectorAll("mjx-container, svg").forEach((el) => el.setAttribute("aria-hidden", "true"));
 	return fragment;
+}
+
+/** False when cloning and cleanup left nothing to show (a lone footnote, say). */
+function hasContent(fragment: DocumentFragment): boolean {
+	return (fragment.textContent ?? "").trim() !== "" || fragment.querySelector("mjx-container, svg, img") !== null;
 }
 
 function structureHeadings(app: App, note: RenderedNote, outlineDepth: number): NoteStructure {
@@ -132,7 +140,10 @@ function structureHeadings(app: App, note: RenderedNote, outlineDepth: number): 
 		const tag = keep ? (`h${Math.min(6, level + shift)}` as HeadingTag) : null;
 		const next = retag(heading, tag, level);
 		next.id = headingAnchor(note.index, j);
-		if (text) headings.push({ id: next.id, text, level, content: cloneHeadingContent(next) });
+		if (text) {
+			const content = cloneHeadingContent(next);
+			headings.push({ id: next.id, text, level, content: hasContent(content) ? content : undefined });
+		}
 	});
 
 	return { cacheToDom, headings, blocks: new Set() };
@@ -289,10 +300,12 @@ export function postprocess(app: App, notes: RenderedNote[], outlineDepth: numbe
 
 	for (const note of notes) {
 		openCallouts(note.section);
-		pruneAccessibilityTree(note.section);
 		const structure = structureHeadings(app, note, outlineDepth);
 		// After the headings, so retagging cannot drop a block id.
 		structure.blocks = placeBlockAnchors(note);
+		// After retagging, so only headings that really are bookmarks keep
+		// their math visible to Chromium's outline builder.
+		pruneAccessibilityTree(note.section);
 		stats.structure.set(note.index, structure);
 		stats.unalignedHeadings += structure.cacheToDom.filter((d) => d === null).length;
 	}
