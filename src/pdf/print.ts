@@ -68,15 +68,18 @@ function currentWindow(): BrowserWindowLike | null {
  */
 export async function withLightWindowBackground<T>(fn: () => Promise<T>): Promise<T> {
 	const win = currentWindow();
+	if (!win || typeof win.getBackgroundColor !== "function" || typeof win.setBackgroundColor !== "function") {
+		return fn();
+	}
 	let previous: string | null = null;
 	try {
-		previous = win?.getBackgroundColor?.() ?? null;
+		previous = win.getBackgroundColor() ?? null;
 	} catch (error) {
 		console.error("[batch-export] Could not read the window background.", error);
 	}
-	if (!win || previous === null) return fn();
+	if (previous === null || previous.toLowerCase() === "#ffffff") return fn();
 	try {
-		win.setBackgroundColor?.("#ffffff");
+		win.setBackgroundColor("#ffffff");
 	} catch (error) {
 		console.error("[batch-export] Could not change the window background.", error);
 		return fn();
@@ -85,7 +88,7 @@ export async function withLightWindowBackground<T>(fn: () => Promise<T>): Promis
 		return await fn();
 	} finally {
 		try {
-			win.setBackgroundColor?.(previous);
+			win.setBackgroundColor(previous);
 		} catch (error) {
 			console.error("[batch-export] Could not restore the window background.", error);
 		}

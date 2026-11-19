@@ -7,13 +7,14 @@
 import { Modal, Setting, setIcon } from "obsidian";
 import type { App } from "obsidian";
 import type { ExportModel, NoteInfo } from "../collect/folder";
-import { isSameOrder, moveItem } from "../collect/order";
+import { applySavedOrder, isSameOrder, moveItem } from "../collect/order";
 import { tocDepthLabel } from "../settingsModel";
 import { danglingTargets, externalRefs, incomingLinks, unresolvedRefs, type ExternalRef } from "../collect/graph";
 
 export interface Selection {
 	indexPath: string | null;
 	notes: string[];
+	order: string[];
 	appendix: string[];
 	outPath: string;
 	openAfter: boolean;
@@ -23,6 +24,8 @@ export interface Selection {
 export interface SelectModalInit {
 	model: ExportModel;
 	ticked: Set<string>;
+	/** Previously saved custom note order for this folder. */
+	savedOrder?: string[];
 	appendix: Set<string>;
 	outPath: string;
 	openAfter: boolean;
@@ -56,8 +59,11 @@ export class SelectModal extends Modal {
 	private summaryEl!: HTMLElement;
 	private resetBtn!: HTMLButtonElement;
 	private dragFrom: number | null = null;
-	/** True while the pointer went down on a row's grip. */
-	private dragArmed = false;
+	/** The row whose grip handle received the active pointer press. */
+	private dragArmedRow: HTMLElement | null = null;
+	private readonly disarmDrag = (): void => {
+		this.dragArmedRow = null;
+	};
 
 	constructor(
 		app: App,
@@ -65,7 +71,7 @@ export class SelectModal extends Modal {
 	) {
 		super(app);
 		this.model = init.model;
-		this.noteOrder = [...init.model.notes];
+		this.noteOrder = applySavedOrder(init.model.notes, init.savedOrder);
 		this.ticked = init.ticked;
 		this.appendix = init.appendix;
 		this.outPath = init.outPath;
@@ -80,6 +86,8 @@ export class SelectModal extends Modal {
 	onOpen(): void {
 		this.modalEl.addClass("be-modal");
 		this.setTitle(`Export “${this.model.folderName}” to PDF`);
+		window.addEventListener("pointerup", this.disarmDrag);
+		window.addEventListener("blur", this.disarmDrag);
 		const { contentEl } = this;
 		contentEl.empty();
 
@@ -91,7 +99,7 @@ export class SelectModal extends Modal {
 			.setName("Index note")
 			.setDesc("The links in this note decide the order of the PDF.")
 			.addDropdown((dd) => {
-				dd.addOption("", "(none: alphabetical)");
+				dd.addOption("", "(None: alphabetical)");
 				for (const path of this.model.indexCandidates) dd.addOption(path, this.relative(path));
 				dd.setValue(this.model.indexPath ?? "");
 				dd.onChange((value) => {
@@ -127,7 +135,6 @@ export class SelectModal extends Modal {
 		this.resetBtn.onclick = () => {
 			this.noteOrder = [...this.model.notes];
 			this.renderNotes();
-			this.updateOrderControls();
 		};
 		const legend = bar.createDiv({ cls: "be-legend" });
 		legend.createSpan({ cls: "be-swatch be-amber", text: "unticked but linked from a ticked note" });
@@ -193,7 +200,7 @@ export class SelectModal extends Modal {
 			return;
 		}
 		if (!this.outPath.trim().toLowerCase().endsWith(".pdf")) {
-			this.summaryEl.setText("The output path must end in .pdf.");
+			this.summaryEl.setText("The output path must have a PDF extension.");
 			return;
 		}
 		const referenced = externalRefs(this.model.graph, this.ticked);
@@ -203,6 +210,7 @@ export class SelectModal extends Modal {
 		this.init.onSubmit({
 			indexPath: this.model.indexPath,
 			notes,
+			order: this.noteOrder.map((n) => n.path),
 			appendix,
 			outPath: this.outPath.trim(),
 			openAfter: this.openAfter,
@@ -211,6 +219,10 @@ export class SelectModal extends Modal {
 	}
 
 	onClose(): void {
+		window.removeEventListener("pointerup", this.disarmDrag);
+		window.removeEventListener("blur", this.disarmDrag);
+		this.dragArmedRow = null;
+		this.dragFrom = null;
 		this.contentEl.empty();
 		if (!this.submitted) this.init.onCancel();
 	}
@@ -223,6 +235,7 @@ export class SelectModal extends Modal {
 
 	private renderNotes(): void {
 		const el = this.listEl;
+		const scrollTop = el.scrollTop;
 		el.empty();
 		const graph = this.model.graph;
 		const dangling = danglingTargets(graph, this.ticked);
@@ -258,15 +271,21 @@ export class SelectModal extends Modal {
 				head.setAttr("title", `Linked from ticked notes (${missingFrom.map((p) => this.title(p)).join(", ")}): its cross-references would be dead text.`);
 			}
 
-			const up = head.createEl("button", { cls: "be-move-btn clickable-icon", attr: { "aria-label": "Move up", title: "Move up" } });
+			const up = head.createEl("button", {
+				cls: "be-move-btn clickable-icon",
+				attr: { "aria-label": "Move up", title: "Move up", "data-move": "up" },
+			});
 			setIcon(up, "arrow-up");
 			up.disabled = index === 0;
-			up.onclick = () => this.moveNote(index, index - 1);
+			up.onclick = () => this.moveNote(index, index - 1, "up");
 
-			const down = head.createEl("button", { cls: "be-move-btn clickable-icon", attr: { "aria-label": "Move down", title: "Move down" } });
+			const down = head.createEl("button", {
+				cls: "be-move-btn clickable-icon",
+				attr: { "aria-label": "Move down", title: "Move down", "data-move": "down" },
+			});
 			setIcon(down, "arrow-down");
 			down.disabled = index === this.noteOrder.length - 1;
-			down.onclick = () => this.moveNote(index, index + 1);
+			down.onclick = () => this.moveNote(index, index + 1, "down");
 
 			const open = this.expanded.has(note.path);
 			const chevron = head.createEl("button", { cls: "be-chevron", text: open ? "▾" : "▸" });
@@ -281,14 +300,25 @@ export class SelectModal extends Modal {
 		});
 
 		this.updateOrderControls();
+		el.scrollTop = scrollTop;
 	}
 
-	/** Reorder one step and redraw the list. */
-	private moveNote(from: number, to: number): void {
+	/** Reorder one step, redraw the list, and keep keyboard focus on the moved row. */
+	private moveNote(from: number, to: number, focusDir?: "up" | "down"): void {
 		const next = moveItem(this.noteOrder, from, to);
 		if (isSameOrder(next.map((n) => n.path), this.noteOrder.map((n) => n.path))) return;
 		this.noteOrder = next;
 		this.renderNotes();
+		if (focusDir) {
+			const targetRow = this.listEl.querySelectorAll<HTMLElement>(".be-row")[to];
+			const preferred = targetRow?.querySelector<HTMLButtonElement>(`button[data-move="${focusDir}"]`);
+			const fallbackDir = focusDir === "up" ? "down" : "up";
+			const targetBtn =
+				preferred && !preferred.disabled
+					? preferred
+					: targetRow?.querySelector<HTMLButtonElement>(`button[data-move="${fallbackDir}"]`);
+			if (targetBtn && !targetBtn.disabled) targetBtn.focus();
+		}
 	}
 
 	/** Enable "Reset order" only when the list differs from index order. */
@@ -305,26 +335,17 @@ export class SelectModal extends Modal {
 		// The row is always draggable so the native drag starts reliably; the
 		// grip merely arms it, and a drag from anywhere else is cancelled.
 		row.draggable = true;
-		const handle = row.querySelector(".be-drag-handle");
-		if (handle instanceof HTMLElement) {
-			handle.addEventListener("pointerdown", () => {
-				this.dragArmed = true;
-				window.addEventListener(
-					"pointerup",
-					() => {
-						this.dragArmed = false;
-					},
-					{ once: true },
-				);
-			});
-		}
+		row.addEventListener("pointerdown", (event) => {
+			this.dragArmedRow =
+				event.target instanceof Element && event.target.closest(".be-drag-handle") !== null ? row : null;
+		});
 
 		row.addEventListener("dragstart", (event) => {
-			if (!this.dragArmed) {
+			if (this.dragArmedRow !== row) {
 				event.preventDefault();
 				return;
 			}
-			this.dragArmed = false;
+			this.dragArmedRow = null;
 			this.dragFrom = index;
 			row.addClass("be-dragging");
 			if (event.dataTransfer) {
@@ -344,7 +365,8 @@ export class SelectModal extends Modal {
 			row.toggleClass("be-drop-below", !above);
 		});
 
-		row.addEventListener("dragleave", () => {
+		row.addEventListener("dragleave", (event) => {
+			if (event.relatedTarget instanceof Node && row.contains(event.relatedTarget)) return;
 			row.removeClass("be-drop-above");
 			row.removeClass("be-drop-below");
 		});
@@ -365,7 +387,7 @@ export class SelectModal extends Modal {
 
 		row.addEventListener("dragend", () => {
 			this.dragFrom = null;
-			this.dragArmed = false;
+			this.dragArmedRow = null;
 			row.removeClass("be-dragging");
 			this.clearDropMarks();
 		});

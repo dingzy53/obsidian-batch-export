@@ -96,8 +96,8 @@ function cloneHeadingContent(heading: HTMLElement): DocumentFragment {
 	const fragment = createFragment();
 	for (const node of Array.from(heading.childNodes)) fragment.appendChild(node.cloneNode(true));
 
-	// A TOC line is not a heading, so a footnote marker is noise there.
-	fragment.querySelectorAll("sup.footnote-ref, .footnote-link, sup[data-footnote-id]").forEach((el) => el.remove());
+	// A TOC line is not a heading, so footnote markers and block-anchor spans are noise there.
+	fragment.querySelectorAll("sup.footnote-ref, .be-block-anchor").forEach((el) => el.remove());
 	for (const el of Array.from(fragment.querySelectorAll("[id]"))) el.removeAttribute("id");
 	// Internal links, external links and tags become plain text: no accent
 	// colour, no underline and no tag pill in the contents page.
@@ -115,7 +115,16 @@ function hasContent(fragment: DocumentFragment): boolean {
 	return (fragment.textContent ?? "").trim() !== "" || fragment.querySelector("mjx-container, svg, img") !== null;
 }
 
-function structureHeadings(app: App, note: RenderedNote, outlineDepth: number): NoteStructure {
+interface StructuredHeading {
+	el: HTMLElement;
+	level: number;
+}
+
+function structureHeadings(
+	app: App,
+	note: RenderedNote,
+	outlineDepth: number,
+): { cacheToDom: (number | null)[]; headingEls: StructuredHeading[] } {
 	const section = note.section;
 	// The note title is already a heading of its own; everything else in the
 	// body is content.
@@ -132,21 +141,29 @@ function structureHeadings(app: App, note: RenderedNote, outlineDepth: number): 
 	const cacheLevels = (app.metadataCache.getFileCache(note.file)?.headings ?? []).map((h: HeadingCache) => h.level);
 	const cacheToDom = alignHeadings(cacheLevels, own.map(levelOf));
 
-	const headings: TocHeading[] = [];
+	const headingEls: StructuredHeading[] = [];
 	own.forEach((heading, j) => {
 		const level = levelOf(heading);
-		const text = (heading.textContent ?? "").trim();
 		const keep = isOutlineLevel(level, outlineDepth);
 		const tag = keep ? (`h${Math.min(6, level + shift)}` as HeadingTag) : null;
 		const next = retag(heading, tag, level);
 		next.id = headingAnchor(note.index, j);
-		if (text) {
-			const content = cloneHeadingContent(next);
-			headings.push({ id: next.id, text, level, content: hasContent(content) ? content : undefined });
-		}
+		headingEls.push({ el: next, level });
 	});
 
-	return { cacheToDom, headings, blocks: new Set() };
+	return { cacheToDom, headingEls };
+}
+
+function collectTocHeadings(headingEls: StructuredHeading[]): TocHeading[] {
+	const headings: TocHeading[] = [];
+	for (const { el, level } of headingEls) {
+		if (!el.isConnected) continue;
+		const text = (el.textContent ?? "").trim();
+		if (!text) continue;
+		const content = cloneHeadingContent(el);
+		headings.push({ id: el.id, text, level, content: hasContent(content) ? content : undefined });
+	}
+	return headings;
 }
 
 const BLOCK_TARGET = "li, p, blockquote, table, .math-block";
@@ -300,14 +317,16 @@ export function postprocess(app: App, notes: RenderedNote[], outlineDepth: numbe
 
 	for (const note of notes) {
 		openCallouts(note.section);
-		const structure = structureHeadings(app, note, outlineDepth);
+		const { cacheToDom, headingEls } = structureHeadings(app, note, outlineDepth);
 		// After the headings, so retagging cannot drop a block id.
-		structure.blocks = placeBlockAnchors(note);
+		const blocks = placeBlockAnchors(note);
+		// After block anchors, so block markers are removed before TOC cloning.
+		const headings = collectTocHeadings(headingEls);
 		// After retagging, so only headings that really are bookmarks keep
 		// their math visible to Chromium's outline builder.
 		pruneAccessibilityTree(note.section);
-		stats.structure.set(note.index, structure);
-		stats.unalignedHeadings += structure.cacheToDom.filter((d) => d === null).length;
+		stats.structure.set(note.index, { cacheToDom, headings, blocks });
+		stats.unalignedHeadings += cacheToDom.filter((d) => d === null).length;
 	}
 	// Links need every note's heading map, so they are a second pass.
 	for (const note of notes) rewriteLinks(app, note, pathToIndex, stats.structure, stats);

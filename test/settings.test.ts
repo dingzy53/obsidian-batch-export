@@ -77,4 +77,19 @@ describe("mergeSettings", () => {
 		const s = mergeSettings({ folderState: { a: { ticked: ["x", 1], known: ["x"], appendix: [], indexPath: 4 }, b: 3 } });
 		expect(s.folderState).toEqual({ a: { ticked: ["x"], known: ["x"], appendix: [], indexPath: null } });
 	});
+
+	it("validates saved custom order per folder", () => {
+		const s = mergeSettings({
+			folderState: {
+				kept: { ticked: [], known: [], appendix: [], indexPath: null, order: ["b.md", 42, "a.md"] },
+				empty: { ticked: [], known: [], appendix: [], indexPath: null, order: [] },
+				invalid: { ticked: [], known: [], appendix: [], indexPath: null, order: [123, null] },
+				wrongType: { ticked: [], known: [], appendix: [], indexPath: null, order: "a.md" },
+			},
+		});
+		expect(s.folderState.kept?.order).toEqual(["b.md", "a.md"]);
+		expect(s.folderState.empty?.order).toBeUndefined();
+		expect(s.folderState.invalid?.order).toBeUndefined();
+		expect(s.folderState.wrongType?.order).toBeUndefined();
+	});
 });

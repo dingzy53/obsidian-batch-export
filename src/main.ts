@@ -2,6 +2,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Notice, Plugin, TFile, TFolder } from "obsidian";
 import { collectModel, defaultTicks, type ExportModel } from "./collect/folder";
+import { isSameOrder } from "./collect/order";
 import { CancelledError, runExport, type ExportRequest, type ExportResult } from "./exporter";
 import { BatchExportSettingTab } from "./settings";
 import { DEFAULT_SETTINGS, mergeSettings, type BatchExportSettings } from "./settingsModel";
@@ -109,6 +110,7 @@ export default class BatchExportPlugin extends Plugin {
 		const modal = new SelectModal(this.app, {
 			model,
 			ticked: this.initialTicks(model, saved),
+			savedOrder: saved?.order,
 			appendix: new Set(saved?.appendix ?? []),
 			outPath: this.defaultOutPath(model),
 			openAfter: this.settings.openAfterExport,
@@ -158,11 +160,14 @@ export default class BatchExportPlugin extends Plugin {
 
 	private async runFromSelection(folder: TFolder, selection: Selection): Promise<void> {
 		const model = collectModel(this.app, folder, selection.indexPath);
+		const defaultOrder = model.notes.map((n) => n.path);
+		const customOrder = isSameOrder(selection.order, defaultOrder) ? undefined : selection.order;
 		this.settings.folderState[folder.path] = {
 			ticked: selection.notes,
-			known: model.notes.map((n) => n.path),
+			known: defaultOrder,
 			appendix: selection.appendix,
 			indexPath: selection.indexPath,
+			...(customOrder ? { order: customOrder } : {}),
 			tocDepth: selection.tocDepth,
 		};
 		this.settings.lastSaveDir = path.dirname(selection.outPath);

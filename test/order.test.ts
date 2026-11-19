@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSameOrder, moveItem, orderNotes } from "../src/collect/order";
+import { applySavedOrder, isSameOrder, moveItem, orderNotes } from "../src/collect/order";
 
 describe("orderNotes", () => {
 	const files = ["C/Index.md", "C/B.md", "C/A.md", "C/Exercise/Ex 10.md", "C/Exercise/Ex 2.md", "C/Z.md"];
@@ -65,5 +65,29 @@ describe("isSameOrder", () => {
 		expect(isSameOrder(["a", "b"], ["b", "a"])).toBe(false);
 		expect(isSameOrder(["a"], ["a", "b"])).toBe(false);
 		expect(isSameOrder([], [])).toBe(true);
+	});
+});
+
+describe("applySavedOrder", () => {
+	const notes = [{ path: "a.md" }, { path: "b.md" }, { path: "c.md" }];
+
+	it("preserves saved order when paths match", () => {
+		expect(applySavedOrder(notes, ["c.md", "a.md", "b.md"]).map((n) => n.path)).toEqual(["c.md", "a.md", "b.md"]);
+	});
+
+	it("drops missing paths and appends new notes in existing order", () => {
+		expect(applySavedOrder(notes, ["c.md", "gone.md"]).map((n) => n.path)).toEqual(["c.md", "a.md", "b.md"]);
+	});
+
+	it("deduplicates repeated paths in savedOrder", () => {
+		expect(applySavedOrder(notes, ["b.md", "b.md", "a.md"]).map((n) => n.path)).toEqual(["b.md", "a.md", "c.md"]);
+	});
+
+	it("returns a fresh copy unchanged when savedOrder is undefined or empty", () => {
+		const fromUndefined = applySavedOrder(notes, undefined);
+		const fromEmpty = applySavedOrder(notes, []);
+		expect(fromUndefined).toEqual(notes);
+		expect(fromEmpty).toEqual(notes);
+		expect(fromUndefined).not.toBe(notes);
 	});
 });

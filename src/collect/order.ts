@@ -47,6 +47,32 @@ export function isSameOrder(a: readonly string[], b: readonly string[]): boolean
 	return a.every((value, index) => value === b[index]);
 }
 
+/**
+ * Reorder `notes` according to `savedOrder`. Paths not in `notes` and
+ * duplicate entries in `savedOrder` are ignored; any remaining notes follow in
+ * their existing order.
+ */
+export function applySavedOrder<T extends { path: string }>(
+	notes: readonly T[],
+	savedOrder: readonly string[] | undefined,
+): T[] {
+	if (!savedOrder || savedOrder.length === 0) return [...notes];
+	const byPath = new Map(notes.map((n) => [n.path, n]));
+	const seen = new Set<string>();
+	const result: T[] = [];
+	for (const path of savedOrder) {
+		if (seen.has(path)) continue;
+		const item = byPath.get(path);
+		if (!item) continue;
+		seen.add(path);
+		result.push(item);
+	}
+	for (const note of notes) {
+		if (!seen.has(note.path)) result.push(note);
+	}
+	return result;
+}
+
 export function orderNotes(input: OrderInput): OrderedEntry[] {
 	const inFolder = new Set(input.folderFiles);
 	const result: OrderedEntry[] = [];

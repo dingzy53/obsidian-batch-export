@@ -16,7 +16,7 @@ import { settle } from "./render/settle";
 import { buildToc, currentNumbers, fillPageNumbers } from "./render/toc";
 import { fixNamedDests, type DestGeometry } from "./pdf/fixDests";
 import { readPdfPages } from "./pdf/pages";
-import { printToPdf } from "./pdf/print";
+import { printToPdf, withLightWindowBackground } from "./pdf/print";
 import { resolveScale, type BatchExportSettings } from "./settingsModel";
 
 export interface ExportRequest {
@@ -140,43 +140,45 @@ export async function runExport(
 		const tmpPdf = path.join(scratch, "pass.pdf");
 		const finalTmp = `${request.outPath}.part`;
 
-		if (toc) {
-			stable = false;
-			for (let pass = 1; pass <= MAX_PRINT_PASSES; pass++) {
-				check();
-				reporter.set(`Printing (pass ${pass}/${MAX_PRINT_PASSES})…`);
-				await printToPdf({
-					filepath: tmpPdf,
-					...printBase,
-				});
-				const found = await readPdfPages(tmpPdf);
-				pages = found.pageCount;
-				const before = currentNumbers(toc);
-				fillPageNumbers(toc, found.pageOf);
-				const after = currentNumbers(toc);
-				stable = [...after].every(([id, text]) => before.get(id) === text);
-				if (stable) {
-					// The numbers printed in this pass already match reality.
-					await fsp.copyFile(tmpPdf, finalTmp);
-					break;
+		await withLightWindowBackground(async () => {
+			if (toc) {
+				stable = false;
+				for (let pass = 1; pass <= MAX_PRINT_PASSES; pass++) {
+					check();
+					reporter.set(`Printing (pass ${pass}/${MAX_PRINT_PASSES})…`);
+					await printToPdf({
+						filepath: tmpPdf,
+						...printBase,
+					});
+					const found = await readPdfPages(tmpPdf);
+					pages = found.pageCount;
+					const before = currentNumbers(toc);
+					fillPageNumbers(toc, found.pageOf);
+					const after = currentNumbers(toc);
+					stable = [...after].every(([id, text]) => before.get(id) === text);
+					if (stable) {
+						// The numbers printed in this pass already match reality.
+						await fsp.copyFile(tmpPdf, finalTmp);
+						break;
+					}
 				}
-			}
-			if (!stable) {
-				// Best effort: ship the last pass with the freshest numbers.
-				reporter.set("Printing final copy…");
+				if (!stable) {
+					// Best effort: ship the last pass with the freshest numbers.
+					reporter.set("Printing final copy…");
+					await printToPdf({
+						filepath: finalTmp,
+						...printBase,
+					});
+				}
+			} else {
+				reporter.set("Printing…");
 				await printToPdf({
 					filepath: finalTmp,
 					...printBase,
 				});
+				pages = (await readPdfPages(finalTmp)).pageCount;
 			}
-		} else {
-			reporter.set("Printing…");
-			await printToPdf({
-				filepath: finalTmp,
-				...printBase,
-			});
-			pages = (await readPdfPages(finalTmp)).pageCount;
-		}
+		});
 
 		reporter.set("Correcting link targets…");
 		const destsFixed = await correctDestinations(finalTmp, {

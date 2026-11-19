@@ -79,7 +79,11 @@ export class BatchExportSettingTab extends PluginSettingTab {
 						control: { type: "number", key: "renderTimeoutSec", min: 10, max: 1800, step: 1, validate: range(10, 1800) },
 					},
 					{ name: "Open PDF after export", control: { type: "toggle", key: "openAfterExport" } },
-					{ name: "Remember ticks per folder", control: { type: "toggle", key: "rememberTicks" } },
+					{
+						name: "Remember ticks per folder",
+						desc: "Remember selected notes, custom order, appendix and contents depth for each folder.",
+						control: { type: "toggle", key: "rememberTicks" },
+					},
 				],
 			},
 		];

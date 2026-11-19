@@ -45,7 +45,7 @@ You can also open the plugin's page: [community.obsidian.md/plugins/batch-export
 ## Usage
 
 - Right-click a folder and choose **Export folder to PDF…**, or run the command for the folder of the active note.
-- A checklist starts in index order. Drag the grip handle (or use the arrow buttons) to change the export order; **Reset order** puts it back. A note is **amber** when it is unticked but a ticked note links to it, so its cross-references would be dead text.
+- A checklist starts in index order. Drag the grip handle (or use the arrow buttons) to change the export order; **Reset order** puts it back. Selections, custom order, appendix choices and contents depth are remembered per folder. A note is **amber** when it is unticked but a ticked note links to it, so its cross-references would be dead text.
 - Linked notes outside the folder are listed separately and can be added as an **Appendix**.
 - The default order comes from the links in the folder's index note.
 - Choose the contents-page heading depth in the export dialog. It is remembered per folder.
@@ -61,7 +61,7 @@ Page size, margins, font size, outline depth, contents depth (default for new ex
 ## Privacy and security
 
 - **Filesystem:** the plugin writes the PDF to the location you choose, using Node's `fs`. It also writes short-lived scratch files to the system temp folder and reads the finished PDF back to compute contents-page numbers and fix link positions. It never writes into your vault.
-- **Electron IPC:** the PDF is produced through the `print-to-pdf` IPC call, the same one Obsidian's built-in PDF export uses. Nothing else uses IPC.
+- **Electron IPC:** the PDF is produced through the `print-to-pdf` IPC call, the same one Obsidian's built-in PDF export uses. `@electron/remote` is used only for the native save dialog and to temporarily switch the window background to white while printing in dark mode.
 - **Vault access:** notes are only read (`vault.cachedRead`), never modified.
 - **Network:** none.
 

@@ -21,6 +21,8 @@ export interface FolderState {
 	appendix: string[];
 	/** Index note override chosen in the modal. */
 	indexPath: string | null;
+	/** Custom note order chosen in the modal, omitted when in index order. */
+	order?: string[];
 	/** TOC depth chosen in the modal last time (see `tocDepth` below). */
 	tocDepth?: number;
 }
@@ -103,11 +105,13 @@ function mergeFolderState(raw: unknown): Record<string, FolderState> {
 	for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
 		if (!value || typeof value !== "object") continue;
 		const v = value as Record<string, unknown>;
+		const order = strings(v.order);
 		out[key] = {
 			ticked: strings(v.ticked),
 			known: strings(v.known),
 			appendix: strings(v.appendix),
 			indexPath: typeof v.indexPath === "string" ? v.indexPath : null,
+			...(order.length > 0 ? { order } : {}),
 			tocDepth: tocDepthOr(v.tocDepth, undefined),
 		};
 	}
