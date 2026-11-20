@@ -7,10 +7,11 @@
 import * as fsp from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Component } from "obsidian";
+import { Component, finishRenderMath } from "obsidian";
 import type { App, TFile } from "obsidian";
 import { createPrintContainer } from "./render/container";
 import { keepShortCallouts } from "./render/keepCallouts";
+import { renderLinkMath } from "./render/linkMath";
 import { postprocess } from "./render/postprocess";
 import { renderNotes, type NoteToRender } from "./render/renderNotes";
 import { settle } from "./render/settle";
@@ -62,6 +63,12 @@ export class CancelledError extends Error {
 
 const MAX_PRINT_PASSES = 3;
 const PT_PER_MM = 72 / 25.4;
+/** finishRenderMath only flushes a stylesheet; never wait longer than this. */
+const LINK_MATH_TIMEOUT_MS = 10_000;
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 /** Corrects the named destinations in place. False when the file could not be patched. */
 async function correctDestinations(file: string, geometry: DestGeometry): Promise<boolean> {
@@ -117,6 +124,13 @@ export async function runExport(
 		reporter.set("Waiting for math, diagrams and embeds…");
 		const settled = await settle(app, container.root, settings.renderTimeoutSec * 1000, () => reporter.cancelled);
 		check();
+
+		// After settle, so links inside late embeds are included; before
+		// post-processing, so dead links, the TOC and the accessibility pruning
+		// all see the rendered math.
+		if (renderLinkMath(container.root) > 0) {
+			await Promise.race([finishRenderMath(), sleep(LINK_MATH_TIMEOUT_MS)]);
+		}
 
 		reporter.set("Preparing outline and links…");
 		const stats = postprocess(app, rendered, settings.outlineDepth);
