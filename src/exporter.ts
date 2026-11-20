@@ -133,7 +133,7 @@ export async function runExport(
 		}
 
 		reporter.set("Preparing outline and links…");
-		const stats = postprocess(app, rendered, settings.outlineDepth);
+		const stats = postprocess(app, rendered, { outlineDepth: settings.outlineDepth, hideTags: settings.hideTags });
 		const toc = buildToc(container.root, rendered, stats.structure, request.tocDepth);
 		keepShortCallouts(container.root, pageContentHeightPx(settings.pageSize, settings.marginsMm, scale));
 

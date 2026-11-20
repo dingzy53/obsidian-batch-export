@@ -111,3 +111,12 @@ describe("pageContentHeightPx / keepCalloutWhole", () => {
 		expect(keepCalloutWhole(0, 900)).toBe(false);
 	});
 });
+
+describe("hideTags", () => {
+	it("defaults to off and keeps a stored boolean", () => {
+		expect(DEFAULT_SETTINGS.hideTags).toBe(false);
+		expect(mergeSettings({ settingsVersion: 3 }).hideTags).toBe(false);
+		expect(mergeSettings({ settingsVersion: 3, hideTags: true }).hideTags).toBe(true);
+		expect(mergeSettings({ settingsVersion: 3, hideTags: "yes" }).hideTags).toBe(false);
+	});
+});

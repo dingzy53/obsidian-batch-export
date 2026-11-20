@@ -238,6 +238,19 @@ function placeBlockAnchors(note: RenderedNote): Set<string> {
 	return placed;
 }
 
+/**
+ * Removes `#tag` links. A paragraph or list item left empty goes too, so a
+ * `#TODO` line leaves no gap. Runs before the TOC is collected, so headings
+ * lose their tags in the TOC as well.
+ */
+function removeTags(section: HTMLElement): void {
+	section.querySelectorAll<HTMLElement>("a.tag").forEach((tag) => {
+		const block = tag.parentElement?.closest<HTMLElement>("p, li");
+		tag.remove();
+		if (block && section.contains(block) && isEmptyBlock(block)) block.remove();
+	});
+}
+
 function headingIndexIn(headings: HeadingCache[], current: HeadingCache): number {
 	const byRef = headings.indexOf(current);
 	if (byRef >= 0) return byRef;
@@ -311,12 +324,19 @@ function rewriteLinks(
 	});
 }
 
-export function postprocess(app: App, notes: RenderedNote[], outlineDepth: number): PostStats {
+export interface PostOptions {
+	outlineDepth: number;
+	hideTags: boolean;
+}
+
+export function postprocess(app: App, notes: RenderedNote[], options: PostOptions): PostStats {
+	const { outlineDepth } = options;
 	const stats: PostStats = { deadLinks: 0, rewrittenLinks: 0, unalignedHeadings: 0, unresolvedBlocks: 0, structure: new Map() };
 	const pathToIndex = new Map(notes.map((n) => [n.file.path, n.index]));
 
 	for (const note of notes) {
 		openCallouts(note.section);
+		if (options.hideTags) removeTags(note.section);
 		const { cacheToDom, headingEls } = structureHeadings(app, note, outlineDepth);
 		// After the headings, so retagging cannot drop a block id.
 		const blocks = placeBlockAnchors(note);

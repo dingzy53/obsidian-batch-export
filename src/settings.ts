@@ -51,6 +51,11 @@ export class BatchExportSettingTab extends PluginSettingTab {
 					},
 					{ name: "Start each note on a new page", control: { type: "toggle", key: "pageBreakPerNote" } },
 					{ name: "Page numbers in footer", control: { type: "toggle", key: "pageNumbers" } },
+					{
+						name: "Hide tags",
+						desc: "Leave #tags in note bodies out of the PDF. A line that holds only tags is removed.",
+						control: { type: "toggle", key: "hideTags" },
+					},
 				],
 			},
 			{

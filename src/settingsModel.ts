@@ -45,6 +45,8 @@ export interface BatchExportSettings {
 	tocDepth: number;
 	pageBreakPerNote: boolean;
 	pageNumbers: boolean;
+	/** Leave `#tags` in note bodies out of the PDF. */
+	hideTags: boolean;
 	renderTimeoutSec: number;
 	openAfterExport: boolean;
 	rememberTicks: boolean;
@@ -65,6 +67,7 @@ export const DEFAULT_SETTINGS: BatchExportSettings = {
 	tocDepth: 3,
 	pageBreakPerNote: true,
 	pageNumbers: true,
+	hideTags: false,
 	renderTimeoutSec: 120,
 	openAfterExport: true,
 	rememberTicks: true,
@@ -178,6 +181,7 @@ export function mergeSettings(raw: unknown): BatchExportSettings {
 		tocDepth: tocDepthOr(r.tocDepth, d.tocDepth),
 		pageBreakPerNote: bool(r.pageBreakPerNote, d.pageBreakPerNote),
 		pageNumbers: bool(r.pageNumbers, d.pageNumbers),
+		hideTags: bool(r.hideTags, d.hideTags),
 		renderTimeoutSec: Math.round(num(r.renderTimeoutSec, d.renderTimeoutSec, 10, 1800)),
 		openAfterExport: bool(r.openAfterExport, d.openAfterExport),
 		rememberTicks: bool(r.rememberTicks, d.rememberTicks),
