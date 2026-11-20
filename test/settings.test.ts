@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SETTINGS, mergeSettings, resolveScale, tocDepthLabel } from "../src/settingsModel";
+import { DEFAULT_SETTINGS, keepCalloutWhole, mergeSettings, pageContentHeightPx, resolveScale, tocDepthLabel } from "../src/settingsModel";
 
 describe("mergeSettings", () => {
 	it("returns defaults for junk", () => {
@@ -91,5 +91,23 @@ describe("mergeSettings", () => {
 		expect(s.folderState.empty?.order).toBeUndefined();
 		expect(s.folderState.invalid?.order).toBeUndefined();
 		expect(s.folderState.wrongType?.order).toBeUndefined();
+	});
+});
+
+describe("pageContentHeightPx / keepCalloutWhole", () => {
+	const m = { top: 10, right: 10, bottom: 10, left: 10 };
+
+	it("measures the printable height in unscaled CSS px", () => {
+		// A4: 277 mm of content = 1046.9 px; at scale 0.8 the page holds 1308.7 px.
+		expect(pageContentHeightPx("A4", m, 1)).toBeCloseTo(1046.93, 1);
+		expect(pageContentHeightPx("A4", m, 0.8)).toBeCloseTo(1308.66, 1);
+		expect(pageContentHeightPx("A5", { ...m, top: 200 }, 1)).toBe(0);
+	});
+
+	it("keeps only short callouts whole", () => {
+		expect(keepCalloutWhole(100, 900)).toBe(true);
+		expect(keepCalloutWhole(300, 900)).toBe(true);
+		expect(keepCalloutWhole(301, 900)).toBe(false);
+		expect(keepCalloutWhole(0, 900)).toBe(false);
 	});
 });

@@ -194,3 +194,23 @@ export function resolveScale(scalePercent: number, obsidianPercent: unknown): nu
 	const percent = scalePercent > 0 ? scalePercent : typeof obsidianPercent === "number" && Number.isFinite(obsidianPercent) ? obsidianPercent : 100;
 	return Math.min(2, Math.max(0.1, percent / 100));
 }
+
+const PAGE_HEIGHT_MM: Record<PageSize, number> = { A4: 297, Letter: 279.4, A5: 210 };
+const CSS_PX_PER_MM = 96 / 25.4;
+
+/**
+ * Height of a page's printable area in CSS px of the print container. The
+ * container is laid out unscaled, so at scale 0.8 a page holds 1/0.8 more.
+ */
+export function pageContentHeightPx(pageSize: PageSize, margins: MarginsMm, scale: number): number {
+	const mm = Math.max(0, PAGE_HEIGHT_MM[pageSize] - margins.top - margins.bottom);
+	return (mm * CSS_PX_PER_MM) / scale;
+}
+
+/** Callouts at most this share of a page are kept on one page. */
+export const KEEP_CALLOUT_SHARE = 1 / 3;
+
+/** True when a callout of `heightPx` is short enough to keep on one page. */
+export function keepCalloutWhole(heightPx: number, pageHeightPx: number): boolean {
+	return heightPx > 0 && heightPx <= pageHeightPx * KEEP_CALLOUT_SHARE;
+}

@@ -10,6 +10,7 @@ import * as path from "node:path";
 import { Component } from "obsidian";
 import type { App, TFile } from "obsidian";
 import { createPrintContainer } from "./render/container";
+import { keepShortCallouts } from "./render/keepCallouts";
 import { postprocess } from "./render/postprocess";
 import { renderNotes, type NoteToRender } from "./render/renderNotes";
 import { settle } from "./render/settle";
@@ -17,7 +18,7 @@ import { buildToc, currentNumbers, fillPageNumbers } from "./render/toc";
 import { fixNamedDests, type DestGeometry } from "./pdf/fixDests";
 import { readPdfPages } from "./pdf/pages";
 import { printToPdf, withLightWindowBackground } from "./pdf/print";
-import { resolveScale, type BatchExportSettings } from "./settingsModel";
+import { pageContentHeightPx, resolveScale, type BatchExportSettings } from "./settingsModel";
 
 export interface ExportRequest {
 	title: string;
@@ -120,6 +121,7 @@ export async function runExport(
 		reporter.set("Preparing outline and links…");
 		const stats = postprocess(app, rendered, settings.outlineDepth);
 		const toc = buildToc(container.root, rendered, stats.structure, request.tocDepth);
+		keepShortCallouts(container.root, pageContentHeightPx(settings.pageSize, settings.marginsMm, scale));
 
 		const tikzErrors = rendered
 			.map((n) => ({ title: n.title, count: n.section.querySelectorAll(".tikz-error").length }))

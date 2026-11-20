@@ -323,6 +323,17 @@
 .batch-export-root .callout {
 	page-break-inside: auto;
 }
+/* A callout title never ends a page on its own: it moves to the next page
+ * with the first lines of its content (and pulls a heading right above it
+ * along, through the heading rule). */
+.batch-export-root .callout-title {
+	page-break-after: avoid;
+}
+/* Short callouts (a third of a page or less, see render/keepCallouts.ts)
+ * stay whole: Chromium can still split them just below the title. */
+.batch-export-root .callout.be-keep {
+	page-break-inside: avoid;
+}
 
 /* ---- TOC page ---------------------------------------------------------- */
 
