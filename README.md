@@ -20,7 +20,7 @@ Export all notes in a folder of your [Obsidian](https://obsidian.md) vault to a 
 ## Requirements
 
 - Obsidian 1.13.1 or newer, desktop only (the plugin uses Obsidian's own PDF printing).
-- Optional: the [Native TikZ](https://github.com/dingzy53/obsidian-tikz) plugin 1.2.0 or newer, so TikZ diagrams print in the light theme.
+- Optional: the [Native TikZ](https://github.com/dingzy53/obsidian-tikz) plugin 1.2.0 or newer, so TikZ diagrams print in the light theme. Version 1.2.0 is not released yet. With 1.1.2, diagrams can print in dark colours when Obsidian uses a dark theme.
 
 ## Installation
 
