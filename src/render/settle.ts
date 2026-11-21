@@ -13,7 +13,10 @@ interface TikzApi {
 
 export interface SettleResult {
 	timedOut: boolean;
-	/** True when the tikz plugin's `api` was missing and polling was used. */
+	/**
+	 * True when the tikz plugin's `api` was missing while the export has TikZ
+	 * diagrams and Obsidian is dark, the only case where they can come out dark.
+	 */
 	tikzApiMissing: boolean;
 	embedsPending: number;
 	tikzPending: number;
@@ -90,7 +93,10 @@ export async function settle(
 	const embedsPending = pendingEmbeds(root);
 	return {
 		timedOut: tikzPending > 0 || embedsPending > 0,
-		tikzApiMissing: api === null,
+		tikzApiMissing:
+			api === null &&
+			root.querySelectorAll(".tikz-container, .block-language-tikz").length > 0 &&
+			document.body.classList.contains("theme-dark"),
 		embedsPending,
 		tikzPending,
 	};
