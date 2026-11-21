@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, blockMarker, headingAnchor, inToc, isOutlineLevel, noteAnchor, tocLineLevel } from "../src/render/anchors";
+import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, blockMarker, headingAnchor, inToc, isOutlineLevel, normalizeTitle, noteAnchor, repeatsTitle, tocLineLevel } from "../src/render/anchors";
 
 describe("anchors", () => {
 	it("builds ids", () => {
@@ -23,6 +23,21 @@ describe("anchors", () => {
 	it("indents TOC lines by heading level", () => {
 		expect([1, 2, 4, 6].map((l) => tocLineLevel(l, false))).toEqual([2, 2, 4, 6]);
 		expect([1, 2, 4, 6].map((l) => tocLineLevel(l, true))).toEqual([3, 3, 5, 7]);
+	});
+
+	it("normalizes heading text for title comparison", () => {
+		expect(normalizeTitle("  Chapter\n  One ")).toBe("chapter one");
+		expect(normalizeTitle(`Chapter One ${blockMarker("intro")}`)).toBe("chapter one");
+	});
+
+	it("detects a heading that repeats the note title or file name", () => {
+		expect(repeatsTitle("Chapter One", ["Chapter One", "chapter-one"])).toBe(true);
+		expect(repeatsTitle(" chapter   ONE ", ["Chapter One", "x"])).toBe(true);
+		expect(repeatsTitle("chapter-one", ["Chapter One", "chapter-one"])).toBe(true);
+		expect(repeatsTitle(`Chapter One ${blockMarker("a")}`, ["Chapter One"])).toBe(true);
+		expect(repeatsTitle("Chapter Two", ["Chapter One", "chapter-one"])).toBe(false);
+		expect(repeatsTitle("Chapter One extended", ["Chapter One"])).toBe(false);
+		expect(repeatsTitle("", [""])).toBe(false);
 	});
 
 	it("outline levels", () => {

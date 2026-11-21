@@ -41,6 +41,17 @@ export function tocLineLevel(level: number, appendix: boolean): number {
 	return Math.min(6, Math.max(2, level)) + (appendix ? 1 : 0);
 }
 
+/** Heading text compared case- and whitespace-insensitively, without block markers. */
+export function normalizeTitle(text: string): string {
+	return text.replace(BLOCK_MARKER_RE, " ").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Whether a heading's text repeats one of the note's names (its title or file name). */
+export function repeatsTitle(headingText: string, names: string[]): boolean {
+	const text = normalizeTitle(headingText);
+	return text !== "" && names.some((name) => normalizeTitle(name) === text);
+}
+
 /**
  * Map each metadata-cache heading to a rendered heading.
  *

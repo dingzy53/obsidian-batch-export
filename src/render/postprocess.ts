@@ -6,7 +6,7 @@
 
 import { parseLinktext, resolveSubpath } from "obsidian";
 import type { App, HeadingCache } from "obsidian";
-import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, headingAnchor, isOutlineLevel, noteAnchor } from "./anchors";
+import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, headingAnchor, isOutlineLevel, noteAnchor, repeatsTitle } from "./anchors";
 import type { RenderedNote } from "./renderNotes";
 
 export interface TocHeading {
@@ -25,6 +25,11 @@ export interface NoteStructure {
 	headings: TocHeading[];
 	/** Lowercased block ids that got an anchor in this note. */
 	blocks: Set<string>;
+	/**
+	 * Rendered heading index of a leading `#` that repeated the note title and
+	 * was removed; links to it land on the note title. Null when none was.
+	 */
+	titleHeading: number | null;
 }
 
 export interface PostStats {
@@ -120,11 +125,52 @@ interface StructuredHeading {
 	level: number;
 }
 
+/** True when nothing visible comes before `heading` inside `body`. */
+function isFirstContent(heading: HTMLElement, body: Element): boolean {
+	const range = document.createRange();
+	range.setStart(body, 0);
+	range.setEndBefore(heading);
+	const before = range.cloneContents();
+	return (
+		(before.textContent ?? "").trim() === "" &&
+		before.querySelector("img, svg, mjx-container, .math, .internal-embed, iframe, video, audio, table, hr") === null
+	);
+}
+
+/**
+ * A leading body `#` that repeats the note title would print the title twice
+ * and add a second bookmark and TOC line for it.
+ */
+function isDuplicateTitle(note: RenderedNote, heading: HTMLElement, body: Element): boolean {
+	return (
+		heading.tagName === "H1" &&
+		isFirstContent(heading, body) &&
+		repeatsTitle(heading.textContent ?? "", [note.title, note.file.basename])
+	);
+}
+
+/**
+ * Removes the duplicate heading. Its block markers become anchors on the note
+ * title here, because `placeBlockAnchors` only looks inside the body.
+ */
+function mergeIntoTitle(note: RenderedNote, heading: HTMLElement, blocks: Set<string>): void {
+	const title = note.section.querySelector<HTMLElement>(".be-note-title");
+	const text = heading.textContent ?? "";
+	for (const m of text.matchAll(BLOCK_MARKER_RE)) {
+		const id = m[1].toLowerCase();
+		if (title && !blocks.has(id)) {
+			title.prepend(createSpan({ cls: "be-block-anchor", attr: { id: blockAnchor(note.index, id) } }));
+			blocks.add(id);
+		}
+	}
+	heading.remove();
+}
+
 function structureHeadings(
 	app: App,
 	note: RenderedNote,
 	outlineDepth: number,
-): { cacheToDom: (number | null)[]; headingEls: StructuredHeading[] } {
+): { cacheToDom: (number | null)[]; headingEls: StructuredHeading[]; titleHeading: number | null; titleBlocks: Set<string> } {
 	const section = note.section;
 	// The note title is already a heading of its own; everything else in the
 	// body is content.
@@ -139,10 +185,20 @@ function structureHeadings(
 	}
 
 	const cacheLevels = (app.metadataCache.getFileCache(note.file)?.headings ?? []).map((h: HeadingCache) => h.level);
+	// Aligned before the duplicate title is removed, so rendered indices stay
+	// those of the cache and a link to the removed heading can be redirected.
 	const cacheToDom = alignHeadings(cacheLevels, own.map(levelOf));
+
+	const titleBlocks = new Set<string>();
+	let titleHeading: number | null = null;
+	if (own.length > 0 && isDuplicateTitle(note, own[0], body)) {
+		mergeIntoTitle(note, own[0], titleBlocks);
+		titleHeading = 0;
+	}
 
 	const headingEls: StructuredHeading[] = [];
 	own.forEach((heading, j) => {
+		if (j === titleHeading) return;
 		const level = levelOf(heading);
 		const keep = isOutlineLevel(level, outlineDepth);
 		const tag = keep ? (`h${Math.min(6, level + shift)}` as HeadingTag) : null;
@@ -151,7 +207,7 @@ function structureHeadings(
 		headingEls.push({ el: next, level });
 	});
 
-	return { cacheToDom, headingEls };
+	return { cacheToDom, headingEls, titleHeading, titleBlocks };
 }
 
 function collectTocHeadings(headingEls: StructuredHeading[]): TocHeading[] {
@@ -279,8 +335,11 @@ function resolveAnchor(
 		const resolved = cache ? resolveSubpath(cache, subpath) : null;
 		if (cache && resolved && resolved.type === "heading") {
 			const k = headingIndexIn(cache.headings ?? [], resolved.current);
-			const dom = k >= 0 ? structure.get(j)?.cacheToDom[k] : null;
-			if (dom !== null && dom !== undefined) return `#${headingAnchor(j, dom)}`;
+			const target = structure.get(j);
+			const dom = k >= 0 ? target?.cacheToDom[k] : null;
+			if (dom !== null && dom !== undefined) {
+				return dom === target?.titleHeading ? `#${noteAnchor(j)}` : `#${headingAnchor(j, dom)}`;
+			}
 		}
 		if (resolved && resolved.type === "block") {
 			const id = resolved.block.id.toLowerCase();
@@ -337,15 +396,16 @@ export function postprocess(app: App, notes: RenderedNote[], options: PostOption
 	for (const note of notes) {
 		openCallouts(note.section);
 		if (options.hideTags) removeTags(note.section);
-		const { cacheToDom, headingEls } = structureHeadings(app, note, outlineDepth);
+		const { cacheToDom, headingEls, titleHeading, titleBlocks } = structureHeadings(app, note, outlineDepth);
 		// After the headings, so retagging cannot drop a block id.
 		const blocks = placeBlockAnchors(note);
+		for (const id of titleBlocks) blocks.add(id);
 		// After block anchors, so block markers are removed before TOC cloning.
 		const headings = collectTocHeadings(headingEls);
 		// After retagging, so only headings that really are bookmarks keep
 		// their math visible to Chromium's outline builder.
 		pruneAccessibilityTree(note.section);
-		stats.structure.set(note.index, { cacheToDom, headings, blocks });
+		stats.structure.set(note.index, { cacheToDom, headings, blocks, titleHeading });
 		stats.unalignedHeadings += cacheToDom.filter((d) => d === null).length;
 	}
 	// Links need every note's heading map, so they are a second pass.
