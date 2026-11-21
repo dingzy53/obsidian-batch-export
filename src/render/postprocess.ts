@@ -21,6 +21,8 @@ export interface TocHeading {
 export interface NoteStructure {
 	/** Cache heading index -> rendered heading index (null when unmatched). */
 	cacheToDom: (number | null)[];
+	/** The body keeps a `#` heading, so all body headings sit one level deeper. */
+	nest: boolean;
 	/** The note's own headings in document order, in the outline or not, for the TOC. */
 	headings: TocHeading[];
 	/** Lowercased block ids that got an anchor in this note. */
@@ -170,7 +172,7 @@ function structureHeadings(
 	app: App,
 	note: RenderedNote,
 	outlineDepth: number,
-): { cacheToDom: (number | null)[]; headingEls: StructuredHeading[]; titleHeading: number | null; titleBlocks: Set<string> } {
+): { cacheToDom: (number | null)[]; headingEls: StructuredHeading[]; titleHeading: number | null; titleBlocks: Set<string>; nest: boolean } {
 	const section = note.section;
 	// The note title is already a heading of its own; everything else in the
 	// body is content.
@@ -195,18 +197,19 @@ function structureHeadings(
 		titleHeading = 0;
 	}
 
+	const nest = own.some((heading, j) => j !== titleHeading && levelOf(heading) === 1);
 	const headingEls: StructuredHeading[] = [];
 	own.forEach((heading, j) => {
 		if (j === titleHeading) return;
 		const level = levelOf(heading);
 		const keep = isOutlineLevel(level, outlineDepth);
-		const tag = keep ? (`h${outlineTagLevel(level, note.appendix)}` as HeadingTag) : null;
+		const tag = keep ? (`h${outlineTagLevel(level, note.appendix, nest)}` as HeadingTag) : null;
 		const next = retag(heading, tag, level);
 		next.id = headingAnchor(note.index, j);
 		headingEls.push({ el: next, level });
 	});
 
-	return { cacheToDom, headingEls, titleHeading, titleBlocks };
+	return { cacheToDom, headingEls, titleHeading, titleBlocks, nest };
 }
 
 function collectTocHeadings(headingEls: StructuredHeading[]): TocHeading[] {
@@ -395,7 +398,7 @@ export function postprocess(app: App, notes: RenderedNote[], options: PostOption
 	for (const note of notes) {
 		openCallouts(note.section);
 		if (options.hideTags) removeTags(note.section);
-		const { cacheToDom, headingEls, titleHeading, titleBlocks } = structureHeadings(app, note, outlineDepth);
+		const { cacheToDom, headingEls, titleHeading, titleBlocks, nest } = structureHeadings(app, note, outlineDepth);
 		// After the headings, so retagging cannot drop a block id.
 		const blocks = placeBlockAnchors(note);
 		for (const id of titleBlocks) blocks.add(id);
@@ -404,7 +407,7 @@ export function postprocess(app: App, notes: RenderedNote[], options: PostOption
 		// After retagging, so only headings that really are bookmarks keep
 		// their math visible to Chromium's outline builder.
 		pruneAccessibilityTree(note.section);
-		stats.structure.set(note.index, { cacheToDom, headings, blocks, titleHeading });
+		stats.structure.set(note.index, { cacheToDom, nest, headings, blocks, titleHeading });
 		stats.unalignedHeadings += cacheToDom.filter((d) => d === null).length;
 	}
 	// Links need every note's heading map, so they are a second pass.

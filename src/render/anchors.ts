@@ -36,14 +36,23 @@ export function inToc(level: number, tocDepth: number): boolean {
 	return tocDepth >= 2 && level <= tocDepth;
 }
 
-/** Indent level (`be-toc-l{n}`) of a heading line; note titles are l1 (l2 in the appendix). */
-export function tocLineLevel(level: number, appendix: boolean): number {
-	return Math.min(6, Math.max(2, level)) + (appendix ? 1 : 0);
+/**
+ * Level of a body heading below the note title, before the appendix shift.
+ * When the note keeps a body `#` (`nest`), every body heading moves down one
+ * level so `##` stays under `#`; otherwise `#` and `##` both sit at level 2.
+ */
+function bodyLevel(level: number, nest: boolean): number {
+	return nest ? level + 1 : Math.max(2, level);
 }
 
-/** Outline tag level of a body heading: a body `#` nests under the note title, like `tocLineLevel`. */
-export function outlineTagLevel(level: number, appendix: boolean): number {
-	return Math.min(6, Math.max(2, level) + (appendix ? 1 : 0));
+/** Indent level (`be-toc-l{n}`) of a heading line; note titles are l1 (l2 in the appendix). */
+export function tocLineLevel(level: number, appendix: boolean, nest = false): number {
+	return Math.min(6, bodyLevel(level, nest)) + (appendix ? 1 : 0);
+}
+
+/** Outline tag level of a body heading: it nests under the note title, like `tocLineLevel`. */
+export function outlineTagLevel(level: number, appendix: boolean, nest = false): number {
+	return Math.min(6, bodyLevel(level, nest) + (appendix ? 1 : 0));
 }
 
 /** Heading text compared case- and whitespace-insensitively, without block markers. */
