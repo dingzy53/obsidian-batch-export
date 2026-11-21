@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, blockMarker, headingAnchor, inToc, isOutlineLevel, normalizeTitle, noteAnchor, repeatsTitle, tocLineLevel } from "../src/render/anchors";
+import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, blockMarker, headingAnchor, inToc, isOutlineLevel, normalizeTitle, noteAnchor, outlineTagLevel, repeatsTitle, tocLineLevel } from "../src/render/anchors";
 
 describe("anchors", () => {
 	it("builds ids", () => {
@@ -23,6 +23,11 @@ describe("anchors", () => {
 	it("indents TOC lines by heading level", () => {
 		expect([1, 2, 4, 6].map((l) => tocLineLevel(l, false))).toEqual([2, 2, 4, 6]);
 		expect([1, 2, 4, 6].map((l) => tocLineLevel(l, true))).toEqual([3, 3, 5, 7]);
+	});
+
+	it("nests body headings under the note title in the outline", () => {
+		expect([1, 2, 3, 6].map((l) => outlineTagLevel(l, false))).toEqual([2, 2, 3, 6]);
+		expect([1, 2, 3, 6].map((l) => outlineTagLevel(l, true))).toEqual([3, 3, 4, 6]);
 	});
 
 	it("normalizes heading text for title comparison", () => {

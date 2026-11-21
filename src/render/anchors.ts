@@ -41,6 +41,11 @@ export function tocLineLevel(level: number, appendix: boolean): number {
 	return Math.min(6, Math.max(2, level)) + (appendix ? 1 : 0);
 }
 
+/** Outline tag level of a body heading: a body `#` nests under the note title, like `tocLineLevel`. */
+export function outlineTagLevel(level: number, appendix: boolean): number {
+	return Math.min(6, Math.max(2, level) + (appendix ? 1 : 0));
+}
+
 /** Heading text compared case- and whitespace-insensitively, without block markers. */
 export function normalizeTitle(text: string): string {
 	return text.replace(BLOCK_MARKER_RE, " ").trim().replace(/\s+/g, " ").toLowerCase();

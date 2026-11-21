@@ -6,7 +6,7 @@
 
 import { parseLinktext, resolveSubpath } from "obsidian";
 import type { App, HeadingCache } from "obsidian";
-import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, headingAnchor, isOutlineLevel, noteAnchor, repeatsTitle } from "./anchors";
+import { alignHeadings, BLOCK_MARKER_RE, blockAnchor, headingAnchor, isOutlineLevel, noteAnchor, outlineTagLevel, repeatsTitle } from "./anchors";
 import type { RenderedNote } from "./renderNotes";
 
 export interface TocHeading {
@@ -175,7 +175,6 @@ function structureHeadings(
 	// The note title is already a heading of its own; everything else in the
 	// body is content.
 	const body = section.querySelector(".be-note-body") ?? section;
-	const shift = note.appendix ? 1 : 0;
 
 	const all = Array.from(body.querySelectorAll<HTMLElement>(HEADING_SELECTOR));
 	const own: HTMLElement[] = [];
@@ -201,7 +200,7 @@ function structureHeadings(
 		if (j === titleHeading) return;
 		const level = levelOf(heading);
 		const keep = isOutlineLevel(level, outlineDepth);
-		const tag = keep ? (`h${Math.min(6, level + shift)}` as HeadingTag) : null;
+		const tag = keep ? (`h${outlineTagLevel(level, note.appendix)}` as HeadingTag) : null;
 		const next = retag(heading, tag, level);
 		next.id = headingAnchor(note.index, j);
 		headingEls.push({ el: next, level });
