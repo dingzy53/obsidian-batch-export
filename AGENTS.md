@@ -33,8 +33,8 @@ build run `obsidian plugin:reload id=batch-export`.
    (needs obsidian-tikz >= 1.2.0, which provides `api.whenSettled` and the
    scoped theme).
 4. Keep `settingsModel.ts`, `collect/order.ts`, `collect/graph.ts`,
-   `render/preprocess.ts`, `render/anchors.ts` and `pdf/fixDests.ts` free of
-   `import "obsidian"` so they stay unit-testable.
+   `render/preprocess.ts`, `render/anchors.ts`, `render/inlineMath.ts` and
+   `pdf/fixDests.ts` free of `import "obsidian"` so they stay unit-testable.
 
 ## Facts learned the hard way (Obsidian 1.14.4 / Electron 43)
 
@@ -88,6 +88,21 @@ build run `obsidian plugin:reload id=batch-export`.
 - MathJax 4 (TeX font) only writes a `[noic]` rule for characters with `oc`.
   Characters that only have `ic`, such as the surd, need a CSS
   `padding-right` override instead.
+- Callout DOM (1.15.1): `div.callout` (block, `overflow: hidden`) >
+  `div.callout-title` (flex) + `div.callout-content`. `page-break-after:
+  avoid` on the title fixed 7 of 8 stranded titles in a 57-page export;
+  Chromium still split a one-line example callout just below its title, and
+  `page-break-before: avoid` on the content's first child did not help.
+  `render/keepCallouts.ts` therefore marks callouts up to a third of a page
+  (`be-keep`, `page-break-inside: avoid`), measured after settle.
+- Obsidian renders `$…$` in wikilink display text as plain text, in reading
+  view too. `render/linkMath.ts` renders it with `renderMath` after settle
+  (so late embeds are included) and before `postprocess`. `renderMath`
+  returns `span.math > mjx-container`; it inherits the link colour.
+- An `aria-label` on an outline heading did not change its bookmark title
+  (tested 2026-11-20). MathJax CHTML puts an accent's `mjx-over` before
+  `mjx-base` in the DOM, and the title for `\bar{X}` reads `¯𝑋`. Left as a
+  README limitation.
 - Community-plugin automated review (community.obsidian.md dashboard):
   - Creating a `<style>` element is an *error* and blocks install. Use
     `styles.css` plus CSS variables set with `setCssProps`, never inline
@@ -106,8 +121,9 @@ build run `obsidian plugin:reload id=batch-export`.
 src/main.ts           plugin, commands, folder menu, public api
 src/exporter.ts       pipeline: render, settle, post-process, print x N
 src/collect/          folder listing + index order (pure) + link graph (pure)
-src/render/           preprocess (pure), anchors (pure), container, renderNotes,
-                      settle, postprocess, toc
+src/render/           preprocess (pure), anchors (pure), inlineMath (pure),
+                      container, renderNotes, settle, linkMath, postprocess,
+                      keepCallouts, toc
 src/pdf/              print (IPC), pages (pdf.js destinations), fixDests (pure)
 src/ui/               SelectModal, SummaryModal, progress
 test/                 vitest for the pure modules

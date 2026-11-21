@@ -15,7 +15,8 @@ Export all notes in a folder of your [Obsidian](https://obsidian.md) vault to a 
 - A PDF outline (notes, `##` and `###` headings) and a contents page with page numbers.
 - Clickable cross-references between the exported notes.
 - Linked notes outside the folder can be added as an appendix.
-- Callouts unfolded, and always printed in the light theme.
+- Callouts unfolded, and always printed in the light theme. A callout title is kept with its content, and short callouts stay on one page.
+- Math in link text (`[[Note|$\chi^2$]]`) is rendered, not printed as LaTeX.
 
 ## Requirements
 
@@ -58,12 +59,20 @@ The PDF has an outline (note, `##`, `###`), a contents page, and clickable cross
 
 Page size, margins, font size, outline depth, contents depth (default for new exports), render timeout.
 
+**Hide tags** (off by default) leaves `#tags` out of the PDF. A line that holds only tags, such as `#TODO`, is removed.
+
 ## Privacy and security
 
 - **Filesystem:** the plugin writes the PDF to the location you choose, using Node's `fs`. It also writes short-lived scratch files to the system temp folder and reads the finished PDF back to compute contents-page numbers and fix link positions. It never writes into your vault.
 - **Electron IPC:** the PDF is produced through the `print-to-pdf` IPC call, the same one Obsidian's built-in PDF export uses. `@electron/remote` is used only for the native save dialog and to temporarily switch the window background to white while printing in dark mode.
 - **Vault access:** notes are only read (`vault.cachedRead`), never modified.
 - **Network:** none.
+
+## Limitations
+
+- Math in link text is rendered only when the whole formula is plain text. A formula split by other markup, such as `[[Note|*$x$*]]`, prints as written.
+- PDF bookmark titles read accents in the wrong order: `$\bar{X}$` in a heading becomes `¯𝑋` in the outline. The contents page and the heading itself are correct.
+- Callouts longer than a third of a page can still break across pages, and in rare cases just below their title.
 
 ## Development
 

@@ -35,8 +35,9 @@ export function buildToc(
 			line(toc, 1, APPENDIX_ANCHOR, "Appendix");
 		}
 		line(toc, note.appendix ? 2 : 1, noteAnchor(note.index), note.title);
-		for (const h of structure.get(note.index)?.headings ?? []) {
-			if (inToc(h.level, tocDepth)) line(toc, tocLineLevel(h.level, note.appendix), h.id, h.text, h.content);
+		const noteStructure = structure.get(note.index);
+		for (const h of noteStructure?.headings ?? []) {
+			if (inToc(h.level, tocDepth)) line(toc, tocLineLevel(h.level, note.appendix, noteStructure?.nest), h.id, h.text, h.content);
 		}
 	}
 	root.prepend(toc);

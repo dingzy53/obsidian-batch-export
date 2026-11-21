@@ -36,9 +36,34 @@ export function inToc(level: number, tocDepth: number): boolean {
 	return tocDepth >= 2 && level <= tocDepth;
 }
 
+/**
+ * Level of a body heading below the note title, before the appendix shift.
+ * When the note keeps a body `#` (`nest`), every body heading moves down one
+ * level so `##` stays under `#`; otherwise `#` and `##` both sit at level 2.
+ */
+function bodyLevel(level: number, nest: boolean): number {
+	return nest ? level + 1 : Math.max(2, level);
+}
+
 /** Indent level (`be-toc-l{n}`) of a heading line; note titles are l1 (l2 in the appendix). */
-export function tocLineLevel(level: number, appendix: boolean): number {
-	return Math.min(6, Math.max(2, level)) + (appendix ? 1 : 0);
+export function tocLineLevel(level: number, appendix: boolean, nest = false): number {
+	return Math.min(6, bodyLevel(level, nest)) + (appendix ? 1 : 0);
+}
+
+/** Outline tag level of a body heading: it nests under the note title, like `tocLineLevel`. */
+export function outlineTagLevel(level: number, appendix: boolean, nest = false): number {
+	return Math.min(6, bodyLevel(level, nest) + (appendix ? 1 : 0));
+}
+
+/** Heading text compared case- and whitespace-insensitively, without block markers. */
+export function normalizeTitle(text: string): string {
+	return text.replace(BLOCK_MARKER_RE, " ").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Whether a heading's text repeats one of the note's names (its title or file name). */
+export function repeatsTitle(headingText: string, names: string[]): boolean {
+	const text = normalizeTitle(headingText);
+	return text !== "" && names.some((name) => normalizeTitle(name) === text);
 }
 
 /**

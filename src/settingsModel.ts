@@ -45,6 +45,8 @@ export interface BatchExportSettings {
 	tocDepth: number;
 	pageBreakPerNote: boolean;
 	pageNumbers: boolean;
+	/** Leave `#tags` in note bodies out of the PDF. */
+	hideTags: boolean;
 	renderTimeoutSec: number;
 	openAfterExport: boolean;
 	rememberTicks: boolean;
@@ -65,6 +67,7 @@ export const DEFAULT_SETTINGS: BatchExportSettings = {
 	tocDepth: 3,
 	pageBreakPerNote: true,
 	pageNumbers: true,
+	hideTags: false,
 	renderTimeoutSec: 120,
 	openAfterExport: true,
 	rememberTicks: true,
@@ -178,6 +181,7 @@ export function mergeSettings(raw: unknown): BatchExportSettings {
 		tocDepth: tocDepthOr(r.tocDepth, d.tocDepth),
 		pageBreakPerNote: bool(r.pageBreakPerNote, d.pageBreakPerNote),
 		pageNumbers: bool(r.pageNumbers, d.pageNumbers),
+		hideTags: bool(r.hideTags, d.hideTags),
 		renderTimeoutSec: Math.round(num(r.renderTimeoutSec, d.renderTimeoutSec, 10, 1800)),
 		openAfterExport: bool(r.openAfterExport, d.openAfterExport),
 		rememberTicks: bool(r.rememberTicks, d.rememberTicks),
@@ -193,4 +197,24 @@ export function mergeSettings(raw: unknown): BatchExportSettings {
 export function resolveScale(scalePercent: number, obsidianPercent: unknown): number {
 	const percent = scalePercent > 0 ? scalePercent : typeof obsidianPercent === "number" && Number.isFinite(obsidianPercent) ? obsidianPercent : 100;
 	return Math.min(2, Math.max(0.1, percent / 100));
+}
+
+const PAGE_HEIGHT_MM: Record<PageSize, number> = { A4: 297, Letter: 279.4, A5: 210 };
+const CSS_PX_PER_MM = 96 / 25.4;
+
+/**
+ * Height of a page's printable area in CSS px of the print container. The
+ * container is laid out unscaled, so at scale 0.8 a page holds 1/0.8 more.
+ */
+export function pageContentHeightPx(pageSize: PageSize, margins: MarginsMm, scale: number): number {
+	const mm = Math.max(0, PAGE_HEIGHT_MM[pageSize] - margins.top - margins.bottom);
+	return (mm * CSS_PX_PER_MM) / scale;
+}
+
+/** Callouts at most this share of a page are kept on one page. */
+export const KEEP_CALLOUT_SHARE = 1 / 3;
+
+/** True when a callout of `heightPx` is short enough to keep on one page. */
+export function keepCalloutWhole(heightPx: number, pageHeightPx: number): boolean {
+	return heightPx > 0 && heightPx <= pageHeightPx * KEEP_CALLOUT_SHARE;
 }
