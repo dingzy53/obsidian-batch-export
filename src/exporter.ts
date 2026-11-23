@@ -57,7 +57,7 @@ export interface Reporter {
 
 export class CancelledError extends Error {
 	constructor() {
-		super("Export cancelled");
+		super("Export canceled");
 	}
 }
 
@@ -130,6 +130,7 @@ export async function runExport(
 		// all see the rendered math.
 		if (renderLinkMath(container.root) > 0) {
 			await Promise.race([finishRenderMath(), sleep(LINK_MATH_TIMEOUT_MS)]);
+			check();
 		}
 
 		reporter.set("Preparing outline and links…");
@@ -166,7 +167,9 @@ export async function runExport(
 						filepath: tmpPdf,
 						...printBase,
 					});
+					check();
 					const found = await readPdfPages(tmpPdf);
+					check();
 					pages = found.pageCount;
 					const before = currentNumbers(toc);
 					fillPageNumbers(toc, found.pageOf);
@@ -175,33 +178,41 @@ export async function runExport(
 					if (stable) {
 						// The numbers printed in this pass already match reality.
 						await fsp.copyFile(tmpPdf, finalTmp);
+						check();
 						break;
 					}
 				}
 				if (!stable) {
+					check();
 					// Best effort: ship the last pass with the freshest numbers.
 					reporter.set("Printing final copy…");
 					await printToPdf({
 						filepath: finalTmp,
 						...printBase,
 					});
+					check();
 				}
 			} else {
+				check();
 				reporter.set("Printing…");
 				await printToPdf({
 					filepath: finalTmp,
 					...printBase,
 				});
+				check();
 				pages = (await readPdfPages(finalTmp)).pageCount;
+				check();
 			}
 		});
 
+		check();
 		reporter.set("Correcting link targets…");
 		const destsFixed = await correctDestinations(finalTmp, {
 			scale,
 			marginTopPt: settings.marginsMm.top * PT_PER_MM,
 			marginLeftPt: settings.marginsMm.left * PT_PER_MM,
 		});
+		check();
 		await fsp.rename(finalTmp, request.outPath);
 
 		return {

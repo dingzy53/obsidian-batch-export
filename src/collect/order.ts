@@ -18,6 +18,32 @@ export interface OrderedEntry {
 	inIndex: boolean;
 }
 
+export interface IndexCandidateInfo {
+	path: string;
+	basename: string;
+	isIndexType: boolean;
+	linksToSibling: boolean;
+}
+
+/**
+ * Picks the default index note: `type: index`, then "index" in name, then a
+ * folder-named note (`Book/Book.md`) when it links to at least one sibling note.
+ */
+export function pickDefaultIndexPath(
+	folderName: string,
+	topCandidates: readonly IndexCandidateInfo[],
+): string | null {
+	const byType = topCandidates.find((candidate) => candidate.isIndexType);
+	if (byType) return byType.path;
+	const byIndexName = topCandidates.find((candidate) => /index/i.test(candidate.basename));
+	if (byIndexName) return byIndexName.path;
+	const lowerFolder = folderName.toLowerCase();
+	const byFolderName = topCandidates.find(
+		(candidate) => candidate.basename.toLowerCase() === lowerFolder && candidate.linksToSibling,
+	);
+	return byFolderName ? byFolderName.path : null;
+}
+
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 /** Natural, case-insensitive path comparison ("Exercise 2" before "Exercise 10"). */

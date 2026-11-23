@@ -25,7 +25,7 @@ export class SummaryModal extends Modal {
 		if (r.embedsPending > 0) issues.push(`${r.embedsPending} embed(s) did not finish loading`);
 		if (r.tikzPending > 0) issues.push(`${r.tikzPending} diagram(s) were still compiling at the timeout`);
 		if (r.timedOut) issues.push("The render timeout was reached; some content may be missing");
-		if (r.tikzApiMissing) issues.push("TikZ diagrams may use dark colours: update the tikz plugin to 1.2.0 or later");
+		if (r.tikzApiMissing) issues.push("TikZ diagrams may use dark colors: update the tikz plugin to 1.2.0 or later");
 		if (r.unalignedHeadings > 0) issues.push(`${r.unalignedHeadings} heading link(s) fall back to the start of their note`);
 		if (r.unresolvedBlocks > 0) issues.push(`${r.unresolvedBlocks} block link(s) fall back to the start of their note`);
 		if (r.destsUnfixed) issues.push("Link targets could not be corrected; links may land below their target");

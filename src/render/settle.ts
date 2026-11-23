@@ -43,21 +43,31 @@ function pendingEmbeds(root: HTMLElement): number {
 	return root.querySelectorAll(".internal-embed:not(.is-loaded)").length;
 }
 
-function waitQuiet(root: HTMLElement, deadline: number): Promise<void> {
+function waitQuiet(root: HTMLElement, deadline: number, isCancelled: () => boolean): Promise<void> {
+	if (isCancelled()) return Promise.resolve();
 	return new Promise((resolve) => {
 		let quietTimer = 0;
+		let pollTimer = 0;
 		const finish = (): void => {
 			observer.disconnect();
 			window.clearTimeout(quietTimer);
 			window.clearTimeout(limitTimer);
+			window.clearInterval(pollTimer);
 			resolve();
 		};
 		const arm = (): void => {
+			if (isCancelled()) {
+				finish();
+				return;
+			}
 			window.clearTimeout(quietTimer);
 			quietTimer = window.setTimeout(finish, QUIET_MS);
 		};
 		const observer = new MutationObserver(arm);
 		const limitTimer = window.setTimeout(finish, Math.max(0, deadline - Date.now()));
+		pollTimer = window.setInterval(() => {
+			if (isCancelled()) finish();
+		}, POLL_MS);
 		observer.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
 		arm();
 	});
@@ -75,19 +85,25 @@ export async function settle(
 
 	for (let pass = 0; pass < 6 && Date.now() < deadline && !isCancelled(); pass++) {
 		await Promise.race([finishRenderMath(), sleep(remaining())]);
+		if (isCancelled()) break;
 
 		if (api) {
 			await Promise.race([api.whenSettled(root), sleep(remaining())]);
+			if (isCancelled()) break;
 		}
 		while ((pendingTikz(root) > 0 || pendingEmbeds(root) > 0) && Date.now() < deadline && !isCancelled()) {
 			await sleep(POLL_MS);
 		}
+		if (isCancelled()) break;
 
-		await waitQuiet(root, deadline);
+		await waitQuiet(root, deadline, isCancelled);
+		if (isCancelled()) break;
 
 		if (pendingTikz(root) === 0 && pendingEmbeds(root) === 0) break;
 	}
-	await Promise.race([finishRenderMath(), sleep(remaining())]);
+	if (!isCancelled()) {
+		await Promise.race([finishRenderMath(), sleep(remaining())]);
+	}
 
 	const tikzPending = pendingTikz(root);
 	const embedsPending = pendingEmbeds(root);
