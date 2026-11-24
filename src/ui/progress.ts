@@ -14,7 +14,8 @@ export class Progress {
 		const cancel = el.createEl("button", { text: "Cancel", cls: "be-progress-cancel" });
 		cancel.onclick = () => {
 			this.cancelled = true;
-			this.set("Cancelling…");
+			cancel.disabled = true;
+			this.set("Canceling…");
 		};
 	}
 

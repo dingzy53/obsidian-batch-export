@@ -171,7 +171,6 @@ export default class BatchExportPlugin extends Plugin {
 			tocDepth: selection.tocDepth,
 		};
 		this.settings.lastSaveDir = path.dirname(selection.outPath);
-		this.settings.openAfterExport = selection.openAfter;
 		await this.saveSettings();
 
 		const progress = new Progress(`Exporting ${folder.name}`);
@@ -189,7 +188,7 @@ export default class BatchExportPlugin extends Plugin {
 		} catch (error) {
 			progress.close();
 			if (error instanceof CancelledError) {
-				new Notice("Export cancelled.");
+				new Notice("Export canceled.");
 			} else {
 				console.error("[batch-export] Export failed.", error);
 				new Notice(`Export failed: ${error instanceof Error ? error.message : String(error)}`, 10000);

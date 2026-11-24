@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySavedOrder, isSameOrder, moveItem, orderNotes } from "../src/collect/order";
+import { applySavedOrder, isSameOrder, moveItem, orderNotes, pickDefaultIndexPath } from "../src/collect/order";
 
 describe("orderNotes", () => {
 	const files = ["C/Index.md", "C/B.md", "C/A.md", "C/Exercise/Ex 10.md", "C/Exercise/Ex 2.md", "C/Z.md"];
@@ -89,5 +89,37 @@ describe("applySavedOrder", () => {
 		expect(fromUndefined).toEqual(notes);
 		expect(fromEmpty).toEqual(notes);
 		expect(fromUndefined).not.toBe(notes);
+	});
+});
+
+describe("pickDefaultIndexPath", () => {
+	it("prefers type: index and index-named notes over folder-named notes", () => {
+		expect(
+			pickDefaultIndexPath("Book", [
+				{ path: "Book/Book.md", basename: "Book", isIndexType: false, linksToSibling: true },
+				{ path: "Book/Outline.md", basename: "Outline", isIndexType: true, linksToSibling: false },
+			]),
+		).toBe("Book/Outline.md");
+		expect(
+			pickDefaultIndexPath("Book", [
+				{ path: "Book/Book.md", basename: "Book", isIndexType: false, linksToSibling: true },
+				{ path: "Book/00 Index.md", basename: "00 Index", isIndexType: false, linksToSibling: false },
+			]),
+		).toBe("Book/00 Index.md");
+	});
+
+	it("auto-picks a same-named folder note only when it links to a sibling", () => {
+		expect(
+			pickDefaultIndexPath("Book", [
+				{ path: "Book/Book.md", basename: "Book", isIndexType: false, linksToSibling: true },
+				{ path: "Book/Ch1.md", basename: "Ch1", isIndexType: false, linksToSibling: false },
+			]),
+		).toBe("Book/Book.md");
+		expect(
+			pickDefaultIndexPath("Math", [
+				{ path: "Math/Math.md", basename: "Math", isIndexType: false, linksToSibling: false },
+				{ path: "Math/Algebra.md", basename: "Algebra", isIndexType: false, linksToSibling: false },
+			]),
+		).toBeNull();
 	});
 });

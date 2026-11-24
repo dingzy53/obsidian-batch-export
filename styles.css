@@ -439,3 +439,35 @@
 		width: auto;
 	}
 }
+
+/* ---- settings margins grid ------------------------------------------- */
+
+.be-margins-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+}
+
+.be-margin-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.be-margin-input {
+	width: 4.5em;
+}
+
+.be-setting-error {
+	display: none;
+	width: 100%;
+	color: var(--text-error);
+	font-size: var(--font-ui-smaller);
+	margin-top: var(--size-2-1);
+}
+
+.be-setting-error.is-visible {
+	display: block;
+}

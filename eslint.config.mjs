@@ -3,7 +3,7 @@ import obsidianmd from "eslint-plugin-obsidianmd";
 
 export default defineConfig([
 	{
-		ignores: ["main.js", "node_modules/**", ".spike/**"],
+		ignores: ["main.js", "node_modules/**", ".spike/**", ".obsidian-cache/**", "wdio.conf.mts", "scripts/**", "test/e2e/**", "test-vault/**"],
 	},
 	// The rules the community-plugin automated review runs. Includes ESLint
 	// and typescript-eslint recommended.

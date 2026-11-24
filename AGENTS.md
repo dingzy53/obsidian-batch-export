@@ -135,3 +135,30 @@ Headless export through `app.plugins.plugins['batch-export'].api.exportFolder`
 via `obsidian eval`, then `qpdf --json` / `pypdf` checks of outline, link
 annotations and TOC numbers, and a `sha256sum` of the test folder before and
 after to prove no note changed.
+
+## Cross-Platform E2E Testing
+
+### Installation
+
+No global `wdio` installation is required; WebdriverIO and `wdio-obsidian-service` live in `devDependencies`.
+
+```bash
+npm ci
+```
+
+- The first E2E run automatically downloads and caches Obsidian binaries into `.obsidian-cache/`.
+- Optional: set `OBSIDIAN_CACHE_DIR=/path/to/shared-cache` to reuse a single Obsidian binary cache across repositories.
+- On headless Linux, run E2E commands under `xvfb-run` (macOS and Windows run directly).
+
+### Testing SOP
+
+1. **On every change** (in `test/e2e/` and `src/`):
+```bash
+npm run build
+npm run check:mobile
+npm run lint
+npm test
+npm run test:e2e:fast    # Desktop latest Obsidian against test-vault/
+```
+2. **Before PR or release**:
+   - Run `npm run test:e2e` (tests `earliest/earliest` + `latest/latest` Obsidian versions) or push to run `.github/workflows/e2e.yml` (Linux/Windows/macOS desktop).

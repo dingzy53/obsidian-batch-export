@@ -1,5 +1,5 @@
 import { PluginSettingTab } from "obsidian";
-import type { App, SettingDefinitionItem } from "obsidian";
+import type { App, Setting, SettingDefinitionItem } from "obsidian";
 import type BatchExportPlugin from "./main";
 import { tocDepthLabel } from "./settingsModel";
 
@@ -35,19 +35,21 @@ export class BatchExportSettingTab extends PluginSettingTab {
 						name: "Page size",
 						control: { type: "dropdown", key: "pageSize", options: { A4: "A4", Letter: "Letter", A5: "A5" } },
 					},
-					...(["top", "right", "bottom", "left"] as const).map((side) => ({
-						name: `Margin ${side} (mm)`,
-						control: { type: "number" as const, key: `marginsMm.${side}`, min: 0, max: 60, validate: range(0, 60) },
-					})),
+					{
+						name: "Margins (mm)",
+						desc: "Top, right, bottom, and left page margins (0–60 mm).",
+						aliases: ["margin", "top", "right", "bottom", "left"],
+						render: (setting) => this.renderMarginsRow(setting),
+					},
 					{
 						name: "Scale (%)",
 						desc: "0 uses the downscale percentage of Obsidian's own Export to PDF dialog.",
-						control: { type: "number", key: "scalePercent", min: 0, max: 200, step: 1, validate: range(10, 200, true) },
+						control: { type: "number", key: "scalePercent", step: 1, validate: range(10, 200, true) },
 					},
 					{
 						name: "Base font size (pt)",
 						desc: "0 keeps Obsidian's font size, like the built-in export.",
-						control: { type: "number", key: "fontSizePt", min: 0, max: 24, validate: range(6, 24, true) },
+						control: { type: "number", key: "fontSizePt", validate: range(6, 24, true) },
 					},
 					{ name: "Start each note on a new page", control: { type: "toggle", key: "pageBreakPerNote" } },
 					{ name: "Page numbers in footer", control: { type: "toggle", key: "pageNumbers" } },
@@ -76,12 +78,12 @@ export class BatchExportSettingTab extends PluginSettingTab {
 			},
 			{
 				type: "group",
-				heading: "Behaviour",
+				heading: "Behavior",
 				items: [
 					{
 						name: "Render timeout (seconds)",
 						desc: "Longest wait for math, diagrams and embeds before printing anyway.",
-						control: { type: "number", key: "renderTimeoutSec", min: 10, max: 1800, step: 1, validate: range(10, 1800) },
+						control: { type: "number", key: "renderTimeoutSec", step: 1, validate: range(10, 1800) },
 					},
 					{ name: "Open PDF after export", control: { type: "toggle", key: "openAfterExport" } },
 					{
@@ -112,5 +114,54 @@ export class BatchExportSettingTab extends PluginSettingTab {
 		if (tail === undefined) s[head] = v;
 		else (s[head] as Record<string, unknown>)[tail] = v;
 		await this.plugin.saveSettings();
+	}
+
+	private renderMarginsRow(setting: Setting): () => void {
+		const grid = setting.controlEl.createDiv({ cls: "be-margins-grid" });
+		const errorEl = setting.settingEl.createDiv({ cls: "be-setting-error" });
+
+		const inputs: HTMLInputElement[] = [];
+		const refreshError = (): void => {
+			for (const input of inputs) {
+				const parsed = Number(input.value);
+				if (input.value.trim() === "" || !Number.isFinite(parsed) || parsed < 0 || parsed > 60) {
+					errorEl.setText("Use a value from 0 to 60.");
+					errorEl.addClass("is-visible");
+					return;
+				}
+			}
+			errorEl.removeClass("is-visible");
+		};
+
+		for (const [side, label] of [
+			["top", "Top"],
+			["right", "Right"],
+			["bottom", "Bottom"],
+			["left", "Left"],
+		] as const) {
+			const cell = grid.createEl("label", { cls: "be-margin-cell" });
+			cell.createSpan({ text: label, cls: "be-margin-label" });
+			const input = cell.createEl("input", {
+				type: "number",
+				cls: "be-margin-input",
+				value: String(this.plugin.settings.marginsMm[side]),
+			});
+			input.step = "1";
+			input.setAttribute("aria-label", `Margin ${side} (mm)`);
+			input.addEventListener("input", () => {
+				refreshError();
+				const parsed = Number(input.value);
+				if (input.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0 && parsed <= 60) {
+					this.plugin.settings.marginsMm[side] = parsed;
+					void this.plugin.saveSettings();
+				}
+			});
+			inputs.push(input);
+		}
+
+		return () => {
+			grid.remove();
+			errorEl.remove();
+		};
 	}
 }

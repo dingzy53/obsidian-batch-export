@@ -7,7 +7,7 @@
 import { parseLinktext, TFile, TFolder } from "obsidian";
 import type { App } from "obsidian";
 import { buildGraph, type Graph, type RawEdge } from "./graph";
-import { orderNotes } from "./order";
+import { orderNotes, pickDefaultIndexPath } from "./order";
 
 export interface NoteInfo {
 	path: string;
@@ -47,12 +47,23 @@ export function noteTitle(app: App, file: TFile): string {
 	return typeof title === "string" && title.trim() !== "" ? title.trim() : file.basename;
 }
 
-/** First top-level note with `type: index`, else one whose name contains "index". */
+/** First top-level note with `type: index`, "index" in name, or linked folder note. */
 export function findIndex(app: App, files: TFile[], folder: TFolder): TFile | null {
 	const top = files.filter((f) => f.parent === folder);
-	const byType = top.find((f) => app.metadataCache.getFileCache(f)?.frontmatter?.type === "index");
-	if (byType) return byType;
-	return top.find((f) => /index/i.test(f.basename)) ?? null;
+	const folderPaths = new Set(files.map((f) => f.path));
+	const candidates = top.map((f) => {
+		const cache = app.metadataCache.getFileCache(f);
+		const isIndexType = cache?.frontmatter?.type === "index";
+		const linksToSibling = (cache?.links ?? []).some((ref) => {
+			const { path } = parseLinktext(ref.link);
+			if (path === "") return false;
+			const target = app.metadataCache.getFirstLinkpathDest(path, f.path);
+			return target !== null && target !== f && folderPaths.has(target.path);
+		});
+		return { path: f.path, basename: f.basename, isIndexType, linksToSibling };
+	});
+	const picked = pickDefaultIndexPath(folder.name, candidates);
+	return picked ? (top.find((f) => f.path === picked) ?? null) : null;
 }
 
 function rawEdgesOf(app: App, file: TFile): RawEdge[] {
